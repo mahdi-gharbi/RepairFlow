@@ -34,7 +34,7 @@ services:
       retries: 30
 
   api:
-    build: { context: ./services, dockerfile: api/Dockerfile }
+    build: { context: ., dockerfile: services/api/Dockerfile }
     image: repairflow-api:dev
     environment: *python-env
     volumes: ["./data:/data:ro"]

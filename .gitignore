@@ -8,3 +8,5 @@ dist/
 .provision/
 artifacts/demo/*.local.*
 .pytest_tmp/
+test-results/
+playwright-report/

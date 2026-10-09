@@ -72,6 +72,21 @@ eventually consistent; an "absent" answer would then need a delay or a second ch
   [`test_ambiguous_smtp_result_is_uncertain_and_never_auto_retried`, `test_email_failure_never_recreates_the_ticket`,
   `test_smtp_outage_delays_email_without_recreating_ticket`]
 
+## Recovery, digest and n8n errors (W5, W6, W0)
+
+* **W5** (Schedule Trigger, every minute) calls `POST /v1/ops/recovery`: lease expiry, reconciliation of uncertain
+  tickets, recovery of stalled intakes. The worker runs the same code (`app/recovery.py`) every tick, so recovery does
+  not depend on n8n's scheduler being up; running both concurrently is safe (row locks + state re-checks).
+  [`test_recovery_schedule_runs_without_manual_trigger`]
+* **W6** (daily 07:00 UTC, plus a manual webhook) reserves `digests.period_key` before sending, and marks it `sent` with
+  the SMTP message id afterwards. A second run for a sent period sends nothing. **Limit:** if SMTP succeeds and the
+  "mark sent" call is lost, the period stays `reserved` and a later run sends a second digest (accepted: a duplicate
+  internal digest is harmless; a ticket is not). [`test_digest_is_sent_once_per_period_key`]
+* **W0** (Error Trigger) is set as `errorWorkflow` on every workflow and posts failed executions to the audit log
+  (`n8n_execution_failed`). Verified with a real failure (API 422 on an invalid period key). It cannot report when
+  the API itself is down; it is a convenience, not a guaranteed callback. Business recovery never depends on it.
+  [`test_error_workflow_reports_a_real_failed_execution`]
+
 ## Restarts
 
 All state lives in PostgreSQL; API, worker and n8n can restart between approval and dispatch.

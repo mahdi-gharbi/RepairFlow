@@ -2,7 +2,7 @@ import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlalchemy import select
+from sqlalchemy import select, true
 from sqlalchemy.orm import Session
 
 from app import dispatch, incidents
@@ -64,13 +64,26 @@ def run_triage(incident_id: uuid.UUID, engine: Literal["auto", "rules"] = "auto"
 
 
 @router.get("/incidents")
-def list_incidents(status: str | None = None, limit: int = Query(50, le=200), p: Principal = Depends(principal),
-                   db: Session = Depends(get_db)):
+def list_incidents(status: str | None = None, category: str | None = None, limit: int = Query(100, le=500),
+                   p: Principal = Depends(principal), db: Session = Depends(get_db)):
+    """Incidents with the category/provenance of the latest valid proposal for their current revision."""
     require(p, "operator", "reviewer")
-    q = select(Incident).order_by(Incident.created_at.desc()).limit(limit)
+    latest = (select(TriageRun.proposal["category"].astext.label("category"), TriageRun.engine.label("provenance"))
+              .where(TriageRun.incident_id == Incident.id, TriageRun.incident_revision == Incident.current_revision,
+                     TriageRun.valid.is_(True))
+              .order_by(TriageRun.created_at.desc()).limit(1).lateral())
+    q = (select(Incident, latest.c.category, latest.c.provenance).outerjoin(latest, true())
+         .order_by(Incident.created_at.desc()).limit(limit))
     if status:
         q = q.where(Incident.status == status)
-    return [_incident_summary(i) for i in db.execute(q).scalars()]
+    if category:
+        q = q.where(latest.c.category == category)
+    return [{**_incident_summary(i), "category": c, "provenance": prov} for i, c, prov in db.execute(q).all()]
+
+
+@router.get("/me")
+def me(p: Principal = Depends(principal)):
+    return {"name": p.name, "role": p.role}
 
 
 @router.get("/incidents/{incident_id}")

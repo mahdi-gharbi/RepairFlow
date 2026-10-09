@@ -2,7 +2,8 @@ import logging
 import pathlib
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.db import engine
@@ -39,3 +40,13 @@ def healthz():
 @app.get("/review", include_in_schema=False)
 def review_page():
     return FileResponse(STATIC / "review.html")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/app/")
+
+
+# React dashboard (built in the image). /review stays as the minimal fallback page.
+if (STATIC / "dashboard").is_dir():
+    app.mount("/app", StaticFiles(directory=STATIC / "dashboard", html=True), name="dashboard")
