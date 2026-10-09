@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Action, Api, ApiError, AuditEvent, IncidentDetail, Me, TimelineEntry, TriageRun } from "./api";
+import { Replay } from "./Replay";
 import { Pill, time } from "./ui";
 
-type Tab = "review" | "actions" | "timeline" | "technical";
+type Tab = "review" | "actions" | "timeline" | "replay" | "technical";
 
 export function Detail({ api, me, id, lastEvent }: { api: Api; me: Me; id: string; lastEvent: AuditEvent | null }) {
   const [shown, setShown] = useState<IncidentDetail | null>(null);
@@ -72,7 +73,7 @@ export function Detail({ api, me, id, lastEvent }: { api: Api; me: Me; id: strin
         )}
         {flash && <div className={`banner ${flash.kind}`} role="status" data-testid="flash">{flash.text}</div>}
         <nav className="tabs" role="tablist">
-          {(["review", "actions", "timeline", "technical"] as Tab[]).filter((t) => t !== "technical" || canReview).map((t) => (
+          {(["review", "actions", "timeline", "replay", "technical"] as Tab[]).filter((t) => t !== "technical" || canReview).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
               {t}{t === "actions" && latest.actions.some((a) => a.status === "uncertain") ? " ⚠" : ""}
             </button>
@@ -84,6 +85,7 @@ export function Detail({ api, me, id, lastEvent }: { api: Api; me: Me; id: strin
                                    highlight={highlight} cite={cite} run={run} api={api} stale={stale} />}
       {tab === "actions" && <Actions actions={latest.actions} canReview={canReview} busy={busy} run={run} api={api} />}
       {tab === "timeline" && <Timeline entries={timeline} actions={latest.actions} />}
+      {tab === "replay" && <Replay api={api} incidentId={shown.id} canRun={canReview} />}
       {tab === "technical" && <Technical runs={runs} />}
     </div>
   );

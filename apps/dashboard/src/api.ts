@@ -1,6 +1,8 @@
 // Thin client for the RepairFlow API. The bearer token travels in a header (no cookie): no ambient
 // credential, hence no CSRF surface. The server enforces every role check; the UI only hides buttons.
 
+import type { ReplayRun } from "./Replay";
+
 export type Role = "operator" | "reviewer";
 
 export interface Me { name: string; role: Role }
@@ -103,6 +105,11 @@ export class Api {
   reconcile = (actionId: string) => this.req<{ status: string; finding: string }>("POST", `/v1/actions/${actionId}/reconcile`);
   resolve = (actionId: string, decision: string, note: string, provider_reference?: string) =>
     this.req("POST", `/v1/actions/${actionId}/resolve`, { decision, note, provider_reference: provider_reference || null });
+
+  replayScenarios = () => this.req<{ scenarios: Record<string, string>; modes: string[] }>("GET", "/v1/replays/scenarios");
+  replays = (incidentId: string) => this.req<ReplayRun[]>("GET", `/v1/replays?incident_id=${incidentId}`);
+  runReplay = (incident_id: string, scenario: string, mode: string) =>
+    this.req<ReplayRun>("POST", "/v1/replays", { incident_id, scenario, mode });
 
   /** Server-sent events read through fetch so the token stays in a header. Reconnects with Last-Event-ID. */
   stream(onEvent: (e: AuditEvent) => void, onState: (live: boolean) => void): () => void {

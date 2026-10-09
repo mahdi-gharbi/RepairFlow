@@ -33,9 +33,27 @@ BACKOFF_BASE_S, BACKOFF_CAP_S = 2.0, 300.0
 RECONCILABLE = {"create_ticket"}
 
 
-def backoff(attempts: int) -> float:
+def backoff(attempts: int, rng: random.Random | None = None) -> float:
     """Exponential backoff with full jitter in [0.5, 1.0] of the step."""
-    return min(BACKOFF_CAP_S, BACKOFF_BASE_S * 2 ** max(attempts - 1, 0)) * random.uniform(0.5, 1.0)
+    return min(BACKOFF_CAP_S, BACKOFF_BASE_S * 2 ** max(attempts - 1, 0)) * (rng or random).uniform(0.5, 1.0)
+
+
+def decide(outcome: str, attempts: int, action_type: str, retry_after_s: float | None = None,
+           rng: random.Random | None = None) -> dict:
+    """Pure decision for a classified attempt outcome. Shared by /ack and by the Replay Lab simulator,
+    so a replay applies exactly the policy the live system applies."""
+    if outcome == "succeeded":
+        return {"status": "succeeded", "event": "action_succeeded"}
+    if outcome in ("retryable", "rate_limited"):
+        if attempts >= MAX_ATTEMPTS:
+            return {"status": "dead", "event": "action_dead_max_attempts", "block": True}
+        delay = retry_after_s if (outcome == "rate_limited" and retry_after_s is not None) else backoff(attempts, rng)
+        return {"status": "retry_wait", "event": "action_retry_scheduled", "delay_s": delay}
+    if outcome == "permanent":
+        return {"status": "dead", "event": "action_dead_permanent", "block": True}
+    # ambiguous: the effect may or may not have happened
+    return {"status": "uncertain", "event": "action_outcome_unknown", "block": action_type not in RECONCILABLE,
+            "reconcile_by_key": action_type in RECONCILABLE}
 
 
 def email_marker(action: Action) -> str:
@@ -214,24 +232,16 @@ def ack(db: Session, action_id: uuid.UUID, req: AckRequest, actor: str) -> dict:
         # The attempt is already escalated; a non-success late ack adds evidence, not a decision.
         audit.record(db, "late_ack_recorded", actor, incident_id=incident.id, action_id=action.id,
                      correlation_id=incident.correlation_id, payload=evidence)
-    elif req.outcome in ("retryable", "rate_limited"):
+    else:
+        d = decide(req.outcome, ob.attempts, action.type, req.retry_after_s)
         action.last_error = evidence
-        if ob.attempts >= MAX_ATTEMPTS:
-            set_action_status(db, action, "dead", actor, "action_dead_max_attempts", incident.correlation_id, **evidence)
+        extra = {}
+        if d["status"] == "retry_wait":
+            ob.available_at = now(db) + timedelta(seconds=d["delay_s"])
+            extra["retry_in_s"] = round(d["delay_s"], 1)
+        set_action_status(db, action, d["status"], actor, d["event"], incident.correlation_id, **extra, **evidence)
+        if d.get("block"):
             _block(db, incident, actor, action)
-        else:
-            delay = req.retry_after_s if (req.outcome == "rate_limited" and req.retry_after_s is not None) else backoff(ob.attempts)
-            ob.available_at = now(db) + timedelta(seconds=delay)
-            set_action_status(db, action, "retry_wait", actor, "action_retry_scheduled", incident.correlation_id,
-                              retry_in_s=round(delay, 1), **evidence)
-    elif req.outcome == "permanent":
-        action.last_error = evidence
-        set_action_status(db, action, "dead", actor, "action_dead_permanent", incident.correlation_id, **evidence)
-        _block(db, incident, actor, action)
-    else:  # ambiguous: the effect may or may not have happened
-        action.last_error = evidence
-        set_action_status(db, action, "uncertain", actor, "action_outcome_unknown", incident.correlation_id, **evidence)
-        _after_uncertain(db, incident, action, actor)
     db.commit()
     return {"status": action.status, "replayed": False}
 

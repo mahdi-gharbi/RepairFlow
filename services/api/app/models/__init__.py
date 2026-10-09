@@ -208,3 +208,20 @@ class Digest(Base):
     message_id: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ReplayRun(Base):
+    """Sandbox replay of an immutable incident snapshot. Never linked to actions/outbox."""
+    __tablename__ = "replay_runs"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    source_incident_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("incidents.id"), index=True)
+    source_revision: Mapped[int] = mapped_column(Integer)
+    scenario: Mapped[str] = mapped_column(String(64))
+    mode: Mapped[str] = mapped_column(String(16))
+    seed: Mapped[int] = mapped_column(Integer)
+    source_summary: Mapped[dict] = mapped_column(JSONB)
+    replay_summary: Mapped[dict] = mapped_column(JSONB)
+    comparison: Mapped[list] = mapped_column(JSONB)
+    trace: Mapped[list] = mapped_column(JSONB)
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
