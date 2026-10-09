@@ -194,17 +194,17 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "16c52133-7225-5eb5-99c1-f88537f5f080",
-      "name": "Run triage",
+      "id": "49561cbb-0780-55e3-ae66-432c5f741015",
+      "name": "Retrieve manuals",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1320,
+        1210,
         200
       ],
       "parameters": {
         "method": "POST",
-        "url": "=http://api:8000/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage",
+        "url": "=http://api:8000/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/manuals",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
@@ -227,12 +227,45 @@
       "onError": "continueRegularOutput"
     },
     {
+      "id": "16c52133-7225-5eb5-99c1-f88537f5f080",
+      "name": "Run triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1430,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
       "id": "cedb3191-e48e-58b9-a5c5-49e71a3a2a58",
       "name": "Respond created",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1540,
+        1650,
         200
       ],
       "parameters": {
@@ -308,6 +341,17 @@
       ]
     },
     "Record telemetry": {
+      "main": [
+        [
+          {
+            "node": "Retrieve manuals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve manuals": {
       "main": [
         [
           {

@@ -1,14 +1,14 @@
 """Incident lifecycle: atomic intake, immutable revisions, triage, corrections and versioned approval."""
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app import audit
+from app import audit, retrieval
 from app.canonical import sha256_hex
 from app.config import get_settings
 from app.contracts import ApproveRequest, Correction, IntakeRequest, RejectRequest, TelemetryEvidence, TriageProposal
@@ -18,7 +18,7 @@ from app.models import (
 )
 from app.policy import POLICY_VERSION, build_plan, plan_digest
 from app.transitions import ACTION_NOT_STARTED, check_action, check_incident
-from app.triage import rules
+from app.triage import llm, rules
 
 
 def now(db: Session) -> datetime:
@@ -159,16 +159,63 @@ def add_telemetry(db: Session, incident_id: uuid.UUID, tel: TelemetryEvidence, a
     _new_revision(db, incident, data, "evidence_added", actor)
     audit.record(db, "evidence_added", actor, incident_id=incident.id, correlation_id=incident.correlation_id,
                  payload={"evidence_id": snap.id, "kind": "telemetry", "available": tel.available})
+    _after_evidence(db, incident, actor, f"new evidence {snap.id}")
+    db.commit()
+    return incident
+
+
+def _after_evidence(db: Session, incident: Incident, actor: str, reason: str) -> None:
+    """A new revision during intake starts enrichment; after approval it invalidates the plan; during
+    review it refreshes the rules proposal (an LLM re-triage is an explicit, separate call)."""
     if incident.status == "received":
         set_incident_status(db, incident, "enriching", actor, "enrichment_started")
     elif incident.status in ("approved", "dispatching", "blocked"):
-        invalidate_approval(db, incident, actor, f"new evidence {snap.id}")
+        invalidate_approval(db, incident, actor, reason)
         if incident.status == "needs_review":
             _run_rules(db, incident, actor)
     elif incident.status == "needs_review":
         _run_rules(db, incident, actor)
+
+
+def add_manual_evidence(db: Session, incident_id: uuid.UUID, actor: str) -> dict:
+    """Retrieves manual sections for the current revision and snapshots them. A new revision is created
+    only when the retrieved set (chunk id + content hash) differs from the one already attached."""
+    incident = lock_incident(db, incident_id)
+    if incident.status in ("completed", "rejected"):
+        raise Conflict("incident_closed", incident.status)
+    rev = current_revision(db, incident)
+    evidence = evidence_for(db, rev)
+    telemetry = next((e.content for e in reversed(evidence) if e.kind == "telemetry"), None)
+    values = (telemetry or {}).get("values") or {}
+    category = rev.data["overrides"].get("category") or rules.classify(rev.data["description"], telemetry)
+    equipment = db.get(Equipment, incident.equipment_id)
+    query = retrieval.build_query(category, rev.data["description"], values.get("error_code"))
+    hits = retrieval.retrieve(db, equipment.model, query, error_code=values.get("error_code"))
+    attached = [e for e in evidence if e.kind == "manual"]
+    result = {"query": query, "hits": [{"chunk_id": c.id, "rank": round(r, 4)} for c, r in hits]}
+    if {(c.id, c.content_hash) for c, _ in hits} == {(e.content["chunk_id"], e.content["chunk_hash"]) for e in attached}:
+        db.rollback()
+        return {**result, "changed": False, "revision": incident.current_revision}
+
+    snaps = []
+    for chunk, _ in hits:
+        content = {"chunk_id": chunk.id, "title": chunk.title, "section": chunk.section, "text": chunk.text,
+                   "published_at": chunk.published_at.isoformat(), "span": [chunk.span_start, chunk.span_end],
+                   "chunk_hash": chunk.content_hash}
+        snaps.append(EvidenceSnapshot(
+            id=f"man-{uuid.uuid4().hex[:12]}", incident_id=incident.id, kind="manual", source_id=chunk.source_id,
+            source_version=chunk.version, content_hash=sha256_hex(content), content=content,
+            observed_at=datetime(chunk.published_at.year, chunk.published_at.month, chunk.published_at.day,
+                                 tzinfo=timezone.utc)))
+    db.add_all(snaps)
+    kept = [i for i, e in zip(rev.data["evidence_ids"], evidence) if e.kind != "manual"]
+    _new_revision(db, incident, {**rev.data, "evidence_ids": kept + [s.id for s in snaps]}, "manual_evidence", actor)
+    audit.record(db, "evidence_added" if snaps else "no_documentation_found", actor, incident_id=incident.id,
+                 correlation_id=incident.correlation_id,
+                 payload={"kind": "manual", "evidence_ids": [s.id for s in snaps], **result})
+    _after_evidence(db, incident, actor, "manual evidence changed")
     db.commit()
-    return incident
+    return {**result, "changed": True, "revision": incident.current_revision, "evidence_ids": [s.id for s in snaps]}
 
 
 # --- triage -------------------------------------------------------------------------------------
@@ -218,7 +265,8 @@ def _run_rules(db: Session, incident: Incident, actor: str) -> TriageRun:
                 **rev.data, "category_override": rev.data["overrides"].get("category")},
             message_ref=message.id, telemetry=telemetry.content if telemetry else None,
             telemetry_ref=telemetry.id if telemetry else None, manifest_id=mf,
-            reported_at=datetime.fromisoformat(rev.data["reported_at"]), max_age_s=get_settings().telemetry_max_age_s)
+            reported_at=datetime.fromisoformat(rev.data["reported_at"]), max_age_s=get_settings().telemetry_max_age_s,
+            manuals=[(e.id, e.source_version, e.content) for e in evidence if e.kind == "manual"])
         errors = validate_refs(proposal, {e.id for e in evidence}, mf, rev.revision)
         run.proposal = proposal.model_dump(mode="json")
         run.valid, run.errors = not errors, errors
@@ -240,15 +288,79 @@ def stalled_enrichment(db: Session, older_than_s: int) -> list[uuid.UUID]:
         Incident.updated_at < text(f"now() - interval '{int(older_than_s)} seconds'"))).scalars().all()
 
 
-def triage(db: Session, incident_id: uuid.UUID, actor: str) -> TriageRun:
-    incident = lock_incident(db, incident_id)
-    if incident.status not in ("received", "enriching", "needs_review"):
-        raise Conflict("invalid_state", f"cannot triage an incident in state {incident.status}")
-    run = _run_rules(db, incident, actor)
-    if incident.status != "needs_review":
-        set_incident_status(db, incident, "needs_review", actor, "ready_for_review", triage_valid=run.valid)
-    db.commit()
-    return run
+def _llm_inputs(db: Session, incident: Incident) -> dict:
+    rev = current_revision(db, incident)
+    evidence = evidence_for(db, rev)
+    equipment = db.get(Equipment, incident.equipment_id)
+    mf = manifest_id(evidence)
+    items = [{"id": e.id, "kind": e.kind, "source_id": e.source_id, "version": e.source_version,
+              "observed_at": e.observed_at.isoformat() if e.observed_at else None, "content": e.content} for e in evidence]
+    context = llm.build_context(revision=rev.revision, manifest_id=mf, data=rev.data, evidence=items,
+                                equipment={"id": equipment.id, "model": equipment.model, "site": equipment.site},
+                                telemetry_max_age_s=get_settings().telemetry_max_age_s)
+    return {"revision": rev.revision, "manifest": mf, "ids": [e.id for e in evidence], "context": context,
+            "input_hash": sha256_hex(context),
+            "engine": "retrieval_llm" if any(e.kind == "manual" for e in evidence) else "llm"}
+
+
+TRIAGEABLE = ("received", "enriching", "needs_review")
+
+
+def triage(session_factory, incident_id: uuid.UUID, actor: str, engine: str = "auto") -> TriageRun:
+    """Phase 1 reads the revision, phase 2 calls the model with no transaction open, phase 3 records every
+    attempt under lock. Any LLM failure (unavailable, invalid schema, invented refs, revision changed during
+    inference) falls back to the rules engine: the incident always reaches review."""
+    with session_factory() as db:
+        incident = db.get(Incident, incident_id)
+        if incident is None:
+            raise NotFound("incident_not_found", str(incident_id))
+        if incident.status not in TRIAGEABLE:
+            raise Conflict("invalid_state", f"cannot triage an incident in state {incident.status}")
+        inputs = _llm_inputs(db, incident) if engine != "rules" and llm.enabled() else None
+
+    attempts, schema = [], None
+    if inputs:
+        schema = llm.json_schema(inputs["revision"], inputs["manifest"], inputs["ids"])
+        attempts = llm.run(inputs["context"], schema,
+                           lambda p: validate_refs(p, set(inputs["ids"]), inputs["manifest"], inputs["revision"]))
+
+    with session_factory() as db:
+        incident = lock_incident(db, incident_id)
+        if incident.status not in TRIAGEABLE:
+            raise Conflict("invalid_state", f"incident moved to {incident.status} during triage")
+        final, previous = None, None
+        for n, a in enumerate(attempts, 1):
+            errors = list(a.errors)
+            if incident.current_revision != inputs["revision"]:
+                errors.append(f"incident revision changed during inference ({inputs['revision']} -> {incident.current_revision})")
+            run = TriageRun(
+                incident_id=incident.id, incident_revision=inputs["revision"], engine=inputs["engine"],
+                model=a.meta.get("model") or get_settings().llm_model, model_digest=a.meta.get("system_fingerprint"),
+                prompt_version=llm.PROMPT_VERSION, input_hash=inputs["input_hash"], raw_output=a.raw,
+                proposal=a.proposal.model_dump(mode="json") if a.proposal else None, valid=not errors, errors=errors,
+                duration_ms=a.duration_ms,
+                context={"system": llm.SYSTEM, "user": inputs["context"], "schema": schema} if n == 1
+                else {"repair_of": str(previous.id), "repair_prompt": "validation errors fed back to the model"},
+                params={**llm.params(), "attempt": n, "response": a.meta})
+            db.add(run)
+            db.flush()
+            audit.record(db, "triage_completed" if run.valid else "triage_failed", actor, incident_id=incident.id,
+                         correlation_id=incident.correlation_id,
+                         payload={"engine": run.engine, "model": run.model, "attempt": n, "revision": run.incident_revision,
+                                  "triage_run_id": str(run.id), "errors": errors})
+            previous = run
+            if run.valid:
+                final = run
+        if final is None:
+            if attempts:
+                audit.record(db, "llm_fallback_to_rules", actor, incident_id=incident.id,
+                             correlation_id=incident.correlation_id, payload={"attempts": len(attempts)})
+            final = _run_rules(db, incident, actor)
+        if incident.status != "needs_review":
+            set_incident_status(db, incident, "needs_review", actor, "ready_for_review",
+                                triage_valid=final.valid, provenance=final.engine)
+        db.commit()
+        return final
 
 
 # --- review -------------------------------------------------------------------------------------
@@ -293,7 +405,6 @@ def correct(db: Session, incident_id: uuid.UUID, corr: Correction, actor: str) -
         invalidate_approval(db, incident, actor, "reviewer correction")
     else:
         set_incident_status(db, incident, "needs_review", actor, "correction_applied")
-    _run_rules(db, incident, actor)
     db.commit()
     return incident
 

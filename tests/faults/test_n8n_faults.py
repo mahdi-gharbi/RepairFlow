@@ -111,16 +111,23 @@ def test_telemetry_unavailable_is_recorded_as_missing_not_invented():
     assert r.status_code == 201, r.text
     assert r.json()["telemetry_available"] is False
     d = incident(r.json()["incident_id"])
+    tel = [e for e in d["evidence"] if e["kind"] == "telemetry"]
+    assert len(tel) == 1 and tel[0]["content"]["available"] is False and tel[0]["content"]["values"] == {}
     p = d["review"]["proposal"]
-    assert any("unavailable" in m for m in p["missing_information"])
-    assert p["category"] == "mechanical" and p["contradictions"] == []
+    assert p["missing_information"]                      # whichever engine produced it
+    if d["review"]["provenance"] == "rules":
+        assert any("unavailable" in m for m in p["missing_information"])
 
 
 def test_stale_telemetry_is_flagged():
     r = intake_n8n(report(equipment="robot-03", description="Le capteur lidar ne détecte plus les obstacles."))
     assert r.status_code == 201, r.text
-    p = incident(r.json()["incident_id"])["review"]["proposal"]
-    assert any("stale" in m for m in p["missing_information"])
+    d = incident(r.json()["incident_id"])
+    tel = next(e for e in d["evidence"] if e["kind"] == "telemetry")
+    assert tel["content"]["available"] is True           # stale data is kept, dated, and not hidden
+    p = d["review"]["proposal"]
+    if d["review"]["provenance"] == "rules":
+        assert any("stale" in m for m in p["missing_information"])
 
 
 def test_pending_actions_survive_api_worker_and_n8n_restarts():

@@ -9,7 +9,7 @@ from datetime import datetime
 from app.contracts import TriageProposal
 
 ENGINE = "rules"
-RULES_VERSION = "rules-2026.10-1"
+RULES_VERSION = "rules-2026.10-2"
 
 KEYWORDS: dict[str, list[str]] = {
     "battery": [r"batter", r"charg", r"autonomie", r"power", r"alimentation", r"s'?arr[eê]te", r"shut ?down", r"[ée]teint"],
@@ -40,7 +40,8 @@ def classify(text: str, telemetry: dict | None) -> str:
 
 def run(*, incident_id: str, equipment_id: str, revision: int, data: dict, message_ref: str,
         telemetry: dict | None, telemetry_ref: str | None, manifest_id: str, reported_at: datetime,
-        max_age_s: int) -> TriageProposal:
+        max_age_s: int, manuals: list[tuple[str, str, dict]] = ()) -> TriageProposal:
+    """`manuals`: (evidence_ref, version, snapshot content) of attached manual sections."""
     text: str = data["description"]
     facts, missing, contradictions = [], [], []
 
@@ -78,6 +79,13 @@ def run(*, incident_id: str, equipment_id: str, revision: int, data: dict, messa
         })
     if len(text.strip()) < 20:
         missing.append("Symptom description is too short to act on.")
+
+    for ref, version, content in manuals:
+        first = re.split(r"(?<=[.!?])\s", content["text"], maxsplit=1)[0]
+        facts.append({"claim": f"Manual '{content['title']}' v{version}, section '{content['section']}': {first[:250]}",
+                      "evidence_refs": [ref]})
+    if not manuals:
+        missing.append("No matching maintenance documentation is attached for this equipment model.")
 
     category = data.get("category_override") or classify(text, telemetry)
     next_step = "clarify" if (contradictions or missing) else "prepare_ticket"

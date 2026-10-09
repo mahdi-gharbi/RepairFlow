@@ -1,0 +1,817 @@
+[
+  {
+    "case": "battery-contradiction",
+    "incident_id": "b7d1fef8-12eb-4d19-ae48-4938f209fafc",
+    "intake_wall_s": 2.02,
+    "provenance": "retrieval_llm",
+    "evidence": [
+      [
+        "msg-dac0e9d209f2",
+        "message",
+        "n8n-intake-webhook:evt-sample-647c670cce",
+        "5db6184ce7b383a2"
+      ],
+      [
+        "tel-969655735913",
+        "telemetry",
+        "telemetry-sim",
+        "2026-10-09T15:44:48.732733+00:00"
+      ],
+      [
+        "man-31823ac4f372",
+        "manual",
+        "man-amr-power",
+        "2.1"
+      ],
+      [
+        "man-af3b6211408a",
+        "manual",
+        "man-amr-power",
+        "2.1"
+      ],
+      [
+        "man-5f6f5f61b10f",
+        "manual",
+        "man-amr-power",
+        "2.1"
+      ]
+    ],
+    "runs": [
+      {
+        "engine": "retrieval_llm",
+        "model": "openai/gpt-oss-20b",
+        "model_digest": "fp_996f667773",
+        "valid": true,
+        "errors": [],
+        "duration_ms": 1558,
+        "prompt_version": "triage-llm-2026.10-1",
+        "usage": {
+          "queue_time": 0.724512715,
+          "total_time": 0.578904003,
+          "prompt_time": 0.104710844,
+          "total_tokens": 2215,
+          "prompt_tokens": 1785,
+          "completion_time": 0.474193159,
+          "completion_tokens": 430,
+          "completion_tokens_details": {
+            "reasoning_tokens": 80
+          }
+        }
+      }
+    ],
+    "proposal": {
+      "summary": "Robot stops after ~3 minutes with low battery error E-PWR-02, despite operator claiming battery is full.",
+      "category": "battery",
+      "draft_ticket": {
+        "title": "Robot AMR-200 stops after ~3 minutes due to low battery",
+        "description": "Telemetry indicates battery_pct 12% and error E-PWR-02, causing shutdown after ~3 minutes. Operator report states battery is full, which contradicts telemetry. Manual confirms E-PWR-02 is triggered by low battery under load. Further investigation needed to verify battery status and charging procedure."
+      },
+      "contradictions": [
+        {
+          "claim_a": "Operator reports battery is full.",
+          "claim_b": "Telemetry shows battery_pct 12% and E-PWR-02 error.",
+          "evidence_refs": [
+            "msg-dac0e9d209f2",
+            "tel-969655735913"
+          ]
+        }
+      ],
+      "extracted_facts": [
+        {
+          "claim": "Robot stopped after ~3 minutes.",
+          "evidence_refs": [
+            "msg-dac0e9d209f2",
+            "tel-969655735913"
+          ]
+        },
+        {
+          "claim": "Telemetry reports battery_pct 12% and error E-PWR-02.",
+          "evidence_refs": [
+            "tel-969655735913"
+          ]
+        },
+        {
+          "claim": "Manual indicates E-PWR-02 occurs when battery_pct <20% under load.",
+          "evidence_refs": [
+            "man-31823ac4f372"
+          ]
+        },
+        {
+          "claim": "Manual explains battery LED may show full while pack is low if docked early.",
+          "evidence_refs": [
+            "man-af3b6211408a"
+          ]
+        }
+      ],
+      "incident_revision": 3,
+      "missing_information": [],
+      "suggested_next_step": "clarify",
+      "evidence_manifest_id": "mf-96fc2a5344552059"
+    },
+    "plan": [
+      {
+        "type": "create_ticket",
+        "args": {
+          "incident_id": "b7d1fef8-12eb-4d19-ae48-4938f209fafc",
+          "incident_revision": 3,
+          "equipment_id": "robot-07",
+          "site": "Warehouse A",
+          "category": "battery",
+          "priority": "P2",
+          "title": "Robot AMR-200 stops after ~3 minutes due to low battery",
+          "description": "Telemetry indicates battery_pct 12% and error E-PWR-02, causing shutdown after ~3 minutes. Operator report states battery is full, which contradicts telemetry. Manual confirms E-PWR-02 is triggered by low battery under load. Further investigation needed to verify battery status and charging procedure."
+        }
+      },
+      {
+        "type": "notify_team",
+        "depends_on": "create_ticket",
+        "args": {
+          "incident_id": "b7d1fef8-12eb-4d19-ae48-4938f209fafc",
+          "template": "ticket_created_v1",
+          "to": "maintenance-north@repairflow.local",
+          "team_id": "maint-north",
+          "subject": "[RepairFlow] P2 Robot AMR-200 stops after ~3 minutes due to low battery",
+          "equipment_id": "robot-07"
+        }
+      }
+    ]
+  },
+  {
+    "case": "network-contradiction",
+    "incident_id": "cfeeb45a-6c63-4e57-83f1-933f7897796b",
+    "intake_wall_s": 1.55,
+    "provenance": "retrieval_llm",
+    "evidence": [
+      [
+        "msg-6e93955cc4af",
+        "message",
+        "n8n-intake-webhook:evt-sample-0b1a0762a5",
+        "ce05e36552c80c40"
+      ],
+      [
+        "tel-d5f48db2f254",
+        "telemetry",
+        "telemetry-sim",
+        "2026-10-09T15:46:30.659388+00:00"
+      ],
+      [
+        "man-0a3ec3d6adfe",
+        "manual",
+        "man-amr-network",
+        "1.4"
+      ],
+      [
+        "man-ef67e9409ead",
+        "manual",
+        "man-amr-network",
+        "1.4"
+      ],
+      [
+        "man-6a5370815c2a",
+        "manual",
+        "man-general",
+        "1.2"
+      ]
+    ],
+    "runs": [
+      {
+        "engine": "retrieval_llm",
+        "model": "openai/gpt-oss-20b",
+        "model_digest": "fp_84bb35977d",
+        "valid": true,
+        "errors": [],
+        "duration_ms": 1261,
+        "prompt_version": "triage-llm-2026.10-1",
+        "usage": {
+          "queue_time": 0.216206063,
+          "total_time": 0.84851446,
+          "prompt_time": 0.106810611,
+          "total_tokens": 2292,
+          "prompt_tokens": 1698,
+          "completion_time": 0.741703849,
+          "completion_tokens": 594,
+          "completion_tokens_details": {
+            "reasoning_tokens": 261
+          }
+        }
+      }
+    ],
+    "proposal": {
+      "summary": "Robot AMR-300 at Warehouse B lost network session with fleet manager (error E-NET-03) and stopped accepting missions. Operator reports tablet wifi is fine, but telemetry indicates network offline.",
+      "category": "network",
+      "draft_ticket": {
+        "title": "Robot AMR-300 network session lost (E-NET-03)",
+        "description": "Telemetry from robot-05 shows error_code \"E-NET-03\" and network_online=false, indicating the robot lost its session with the fleet manager for more than 30 seconds and stopped accepting missions. Manual section 2 confirms this behavior. Operator report states that the tablet wifi is fine, which contradicts the telemetry. Further investigation should verify the robot’s own radio connectivity and the access point near the robot. Safety procedures advise inspecting the robot before restarting."
+      },
+      "contradictions": [
+        {
+          "claim_a": "Operator reports tablet wifi is fine",
+          "claim_b": "Telemetry shows network_online=false and error E-NET-03",
+          "evidence_refs": [
+            "msg-6e93955cc4af",
+            "tel-d5f48db2f254"
+          ]
+        }
+      ],
+      "extracted_facts": [
+        {
+          "claim": "Robot reported error code E-NET-03 and network_online=false",
+          "evidence_refs": [
+            "tel-d5f48db2f254"
+          ]
+        },
+        {
+          "claim": "Operator reports that the tablet wifi is fine",
+          "evidence_refs": [
+            "msg-6e93955cc4af"
+          ]
+        }
+      ],
+      "incident_revision": 3,
+      "missing_information": [],
+      "suggested_next_step": "prepare_ticket",
+      "evidence_manifest_id": "mf-7ccedca216f1517c"
+    },
+    "plan": [
+      {
+        "type": "create_ticket",
+        "args": {
+          "incident_id": "cfeeb45a-6c63-4e57-83f1-933f7897796b",
+          "incident_revision": 3,
+          "equipment_id": "robot-05",
+          "site": "Warehouse B",
+          "category": "network",
+          "priority": "P3",
+          "title": "Robot AMR-300 network session lost (E-NET-03)",
+          "description": "Telemetry from robot-05 shows error_code \"E-NET-03\" and network_online=false, indicating the robot lost its session with the fleet manager for more than 30 seconds and stopped accepting missions. Manual section 2 confirms this behavior. Operator report states that the tablet wifi is fine, which contradicts the telemetry. Further investigation should verify the robot’s own radio connectivity and the access point near the robot. Safety procedures advise inspecting the robot before restarting."
+        }
+      },
+      {
+        "type": "notify_team",
+        "depends_on": "create_ticket",
+        "args": {
+          "incident_id": "cfeeb45a-6c63-4e57-83f1-933f7897796b",
+          "template": "ticket_created_v1",
+          "to": "maintenance-south@repairflow.local",
+          "team_id": "maint-south",
+          "subject": "[RepairFlow] P3 Robot AMR-300 network session lost (E-NET-03)",
+          "equipment_id": "robot-05"
+        }
+      }
+    ]
+  },
+  {
+    "case": "mechanical",
+    "incident_id": "d149139f-1c45-475b-8bca-82e81432eb81",
+    "intake_wall_s": 1.58,
+    "provenance": "retrieval_llm",
+    "evidence": [
+      [
+        "msg-4f0a7f0251c6",
+        "message",
+        "n8n-intake-webhook:evt-sample-78a6824949",
+        "8c04943a421122c1"
+      ],
+      [
+        "tel-bdacf60a4467",
+        "telemetry",
+        "telemetry-sim",
+        "2026-10-09T15:46:07.171718+00:00"
+      ],
+      [
+        "man-fff82f44ec28",
+        "manual",
+        "man-general",
+        "1.2"
+      ],
+      [
+        "man-57ae848529de",
+        "manual",
+        "man-amr-network",
+        "1.4"
+      ],
+      [
+        "man-d6f43bba0ec6",
+        "manual",
+        "man-amr-power",
+        "2.1"
+      ]
+    ],
+    "runs": [
+      {
+        "engine": "retrieval_llm",
+        "model": "openai/gpt-oss-20b",
+        "model_digest": "fp_8b41efc9a3",
+        "valid": true,
+        "errors": [],
+        "duration_ms": 1337,
+        "prompt_version": "triage-llm-2026.10-1",
+        "usage": {
+          "queue_time": 0.206121943,
+          "total_time": 0.866255955,
+          "prompt_time": 0.088054195,
+          "total_tokens": 2353,
+          "prompt_tokens": 1766,
+          "completion_time": 0.77820176,
+          "completion_tokens": 587,
+          "completion_tokens_details": {
+            "reasoning_tokens": 243
+          }
+        }
+      }
+    ],
+    "proposal": {
+      "summary": "Front right wheel squeaking with motor overcurrent error E-MOT-12",
+      "category": "mechanical",
+      "draft_ticket": {
+        "title": "Investigate front right wheel squeaking and E-MOT-12 error",
+        "description": "The robot reported strong squeaking from the front right wheel and slowed during turns. Telemetry shows error code E-MOT-12, which the manual identifies as a drive motor overcurrent. The manual also notes that wheel squeaking often indicates debris in the caster or a worn wheel bearing. A physical inspection of the front right wheel and motor should be performed to determine if debris or bearing wear is causing the overcurrent and squeaking. Battery and network status appear normal (64 % battery, network online)."
+      },
+      "contradictions": [],
+      "extracted_facts": [
+        {
+          "claim": "Front right wheel squeaking and robot slows in turns",
+          "evidence_refs": [
+            "msg-4f0a7f0251c6"
+          ]
+        },
+        {
+          "claim": "Telemetry reports error code E-MOT-12",
+          "evidence_refs": [
+            "tel-bdacf60a4467"
+          ]
+        },
+        {
+          "claim": "Manual indicates E-MOT-12 means drive motor overcurrent",
+          "evidence_refs": [
+            "man-fff82f44ec28"
+          ]
+        },
+        {
+          "claim": "Manual notes that grinding or squeaking from a wheel usually means debris in the caster or a worn wheel bearing",
+          "evidence_refs": [
+            "man-fff82f44ec28"
+          ]
+        }
+      ],
+      "incident_revision": 3,
+      "missing_information": [
+        "Wheel bearing condition",
+        "Debris presence"
+      ],
+      "suggested_next_step": "clarify",
+      "evidence_manifest_id": "mf-5f1638d3e395e6ad"
+    },
+    "plan": [
+      {
+        "type": "create_ticket",
+        "args": {
+          "incident_id": "d149139f-1c45-475b-8bca-82e81432eb81",
+          "incident_revision": 3,
+          "equipment_id": "robot-02",
+          "site": "Warehouse A",
+          "category": "mechanical",
+          "priority": "P2",
+          "title": "Investigate front right wheel squeaking and E-MOT-12 error",
+          "description": "The robot reported strong squeaking from the front right wheel and slowed during turns. Telemetry shows error code E-MOT-12, which the manual identifies as a drive motor overcurrent. The manual also notes that wheel squeaking often indicates debris in the caster or a worn wheel bearing. A physical inspection of the front right wheel and motor should be performed to determine if debris or bearing wear is causing the overcurrent and squeaking. Battery and network status appear normal (64 % battery, network online)."
+        }
+      },
+      {
+        "type": "notify_team",
+        "depends_on": "create_ticket",
+        "args": {
+          "incident_id": "d149139f-1c45-475b-8bca-82e81432eb81",
+          "template": "ticket_created_v1",
+          "to": "maintenance-north@repairflow.local",
+          "team_id": "maint-north",
+          "subject": "[RepairFlow] P2 Investigate front right wheel squeaking and E-MOT-12 error",
+          "equipment_id": "robot-02"
+        }
+      }
+    ]
+  },
+  {
+    "case": "sensor",
+    "incident_id": "ae83d607-6ff6-4ec2-a16d-938d9100e5c9",
+    "intake_wall_s": 0.48,
+    "provenance": "rules",
+    "evidence": [
+      [
+        "msg-532a4a397bf1",
+        "message",
+        "n8n-intake-webhook:evt-sample-08b789cc89",
+        "68b5d4459cdc77ff"
+      ],
+      [
+        "tel-1ed9379509d3",
+        "telemetry",
+        "telemetry-sim",
+        "2026-10-09T15:45:23.767036+00:00"
+      ],
+      [
+        "man-772c0480e217",
+        "manual",
+        "man-arm6-sensors",
+        "3.0"
+      ],
+      [
+        "man-2d3397b91163",
+        "manual",
+        "man-arm6-sensors",
+        "3.0"
+      ],
+      [
+        "man-14a066a707dd",
+        "manual",
+        "man-general",
+        "1.2"
+      ]
+    ],
+    "runs": [
+      {
+        "engine": "retrieval_llm",
+        "model": "openai/gpt-oss-20b",
+        "model_digest": null,
+        "valid": false,
+        "errors": [
+          "RuntimeError: provider HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `<redacted>` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6197, Requested 1844. Please try again in 307.5ms. Need more tokens? Upgrade to Dev Tier to"
+        ],
+        "duration_ms": 240,
+        "prompt_version": "triage-llm-2026.10-1",
+        "usage": null
+      },
+      {
+        "engine": "rules",
+        "model": null,
+        "model_digest": null,
+        "valid": true,
+        "errors": [],
+        "duration_ms": 0,
+        "prompt_version": "rules-2026.10-2",
+        "usage": null
+      }
+    ],
+    "proposal": {
+      "summary": "other issue reported on robot-06",
+      "category": "other",
+      "draft_ticket": {
+        "title": "[robot-06] other: The sorter keeps missing parcels and picks them off-center since this ",
+        "description": "other issue reported on robot-06.\n\nFacts:\n- Operator report: The sorter keeps missing parcels and picks them off-center since this morning. [msg-532a4a397bf1]\n- Telemetry battery_pct=100 (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Telemetry network_online=True (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Telemetry error_code=E-SNS-07 (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Telemetry uptime_s=5100 (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Manual 'ARM-6 sorter - sensors and calibration' v3.0, section '2. Detection errors': Error E-SNS-07 means the stereo camera calibration drifted beyond tolerance. [man-772c0480e217]\n- Manual 'ARM-6 sorter - sensors and calibration' v3.0, section '1. Vision and proximity sensors': The ARM-6 sorter uses a stereo camera for item detection and two proximity sensors for safety stops. [man-2d3397b91163]\n- Manual 'Fleet - general maintenance' v1.2, section '1. Before opening a ticket': Collect the equipment id, the time of the event, the error code shown in telemetry and what the operator observed. [man-14a066a707dd]"
+      },
+      "contradictions": [],
+      "extracted_facts": [
+        {
+          "claim": "Operator report: The sorter keeps missing parcels and picks them off-center since this morning.",
+          "evidence_refs": [
+            "msg-532a4a397bf1"
+          ]
+        },
+        {
+          "claim": "Telemetry battery_pct=100 (observed 2026-10-09T15:45:23.767036Z)",
+          "evidence_refs": [
+            "tel-1ed9379509d3"
+          ]
+        },
+        {
+          "claim": "Telemetry network_online=True (observed 2026-10-09T15:45:23.767036Z)",
+          "evidence_refs": [
+            "tel-1ed9379509d3"
+          ]
+        },
+        {
+          "claim": "Telemetry error_code=E-SNS-07 (observed 2026-10-09T15:45:23.767036Z)",
+          "evidence_refs": [
+            "tel-1ed9379509d3"
+          ]
+        },
+        {
+          "claim": "Telemetry uptime_s=5100 (observed 2026-10-09T15:45:23.767036Z)",
+          "evidence_refs": [
+            "tel-1ed9379509d3"
+          ]
+        },
+        {
+          "claim": "Manual 'ARM-6 sorter - sensors and calibration' v3.0, section '2. Detection errors': Error E-SNS-07 means the stereo camera calibration drifted beyond tolerance.",
+          "evidence_refs": [
+            "man-772c0480e217"
+          ]
+        },
+        {
+          "claim": "Manual 'ARM-6 sorter - sensors and calibration' v3.0, section '1. Vision and proximity sensors': The ARM-6 sorter uses a stereo camera for item detection and two proximity sensors for safety stops.",
+          "evidence_refs": [
+            "man-2d3397b91163"
+          ]
+        },
+        {
+          "claim": "Manual 'Fleet - general maintenance' v1.2, section '1. Before opening a ticket': Collect the equipment id, the time of the event, the error code shown in telemetry and what the operator observed.",
+          "evidence_refs": [
+            "man-14a066a707dd"
+          ]
+        }
+      ],
+      "incident_revision": 3,
+      "missing_information": [],
+      "suggested_next_step": "prepare_ticket",
+      "evidence_manifest_id": "mf-eba69aa684d59a43"
+    },
+    "plan": [
+      {
+        "type": "create_ticket",
+        "args": {
+          "incident_id": "ae83d607-6ff6-4ec2-a16d-938d9100e5c9",
+          "incident_revision": 3,
+          "equipment_id": "robot-06",
+          "site": "Warehouse B",
+          "category": "other",
+          "priority": "P4",
+          "title": "[robot-06] other: The sorter keeps missing parcels and picks them off-center since this ",
+          "description": "other issue reported on robot-06.\n\nFacts:\n- Operator report: The sorter keeps missing parcels and picks them off-center since this morning. [msg-532a4a397bf1]\n- Telemetry battery_pct=100 (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Telemetry network_online=True (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Telemetry error_code=E-SNS-07 (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Telemetry uptime_s=5100 (observed 2026-10-09T15:45:23.767036Z) [tel-1ed9379509d3]\n- Manual 'ARM-6 sorter - sensors and calibration' v3.0, section '2. Detection errors': Error E-SNS-07 means the stereo camera calibration drifted beyond tolerance. [man-772c0480e217]\n- Manual 'ARM-6 sorter - sensors and calibration' v3.0, section '1. Vision and proximity sensors': The ARM-6 sorter uses a stereo camera for item detection and two proximity sensors for safety stops. [man-2d3397b91163]\n- Manual 'Fleet - general maintenance' v1.2, section '1. Before opening a ticket': Collect the equipment id, the time of the event, the error code shown in telemetry and what the operator observed. [man-14a066a707dd]"
+        }
+      },
+      {
+        "type": "notify_team",
+        "depends_on": "create_ticket",
+        "args": {
+          "incident_id": "ae83d607-6ff6-4ec2-a16d-938d9100e5c9",
+          "template": "ticket_created_v1",
+          "to": "maintenance-south@repairflow.local",
+          "team_id": "maint-south",
+          "subject": "[RepairFlow] P4 [robot-06] other: The sorter keeps missing parcels and picks them off-center since this ",
+          "equipment_id": "robot-06"
+        }
+      }
+    ]
+  },
+  {
+    "case": "stale-telemetry",
+    "incident_id": "45ed9b02-8c48-43d7-84f5-d424e53cf36a",
+    "intake_wall_s": 0.58,
+    "provenance": "rules",
+    "evidence": [
+      [
+        "msg-5624e29329b6",
+        "message",
+        "n8n-intake-webhook:evt-sample-c5df44e234",
+        "a826fc55a6c1c5cc"
+      ],
+      [
+        "tel-3ce649a70adf",
+        "telemetry",
+        "telemetry-sim",
+        "2026-10-09T13:46:54.300420+00:00"
+      ],
+      [
+        "man-83bedb3afc46",
+        "manual",
+        "man-amr-network",
+        "1.4"
+      ],
+      [
+        "man-c049f0b03ecc",
+        "manual",
+        "man-amr-network",
+        "1.4"
+      ],
+      [
+        "man-83b847162c2f",
+        "manual",
+        "man-amr-power",
+        "2.1"
+      ]
+    ],
+    "runs": [
+      {
+        "engine": "retrieval_llm",
+        "model": "openai/gpt-oss-20b",
+        "model_digest": null,
+        "valid": false,
+        "errors": [
+          "RuntimeError: provider HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `<redacted>` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6122, Requested 3271. Please try again in 10.4475s. Need more tokens? Upgrade to Dev Tier t"
+        ],
+        "duration_ms": 266,
+        "prompt_version": "triage-llm-2026.10-1",
+        "usage": null
+      },
+      {
+        "engine": "rules",
+        "model": null,
+        "model_digest": null,
+        "valid": true,
+        "errors": [],
+        "duration_ms": 0,
+        "prompt_version": "rules-2026.10-2",
+        "usage": null
+      }
+    ],
+    "proposal": {
+      "summary": "other issue reported on robot-03; 1 missing information item(s)",
+      "category": "other",
+      "draft_ticket": {
+        "title": "[robot-03] other: Le robot ne démarre plus du tout depuis la pause.",
+        "description": "other issue reported on robot-03; 1 missing information item(s).\n\nFacts:\n- Operator report: Le robot ne démarre plus du tout depuis la pause. [msg-5624e29329b6]\n- Telemetry battery_pct=90 (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Telemetry network_online=True (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Telemetry error_code=None (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Telemetry uptime_s=400 (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Manual 'AMR series - connectivity' v1.4, section '2. Robot offline': Error E-NET-03 means the robot lost its session with the fleet manager for more than 30 seconds. [man-83bedb3afc46]\n- Manual 'AMR series - connectivity' v1.4, section '1. Fleet network': Robots connect to the fleet manager over the warehouse wifi on a dedicated SSID. [man-c049f0b03ecc]\n- Manual 'AMR series - battery and power' v2.1, section '1. Battery pack overview': AMR-200 and AMR-300 robots use a 48 V lithium iron phosphate pack. [man-83b847162c2f]\n\nMissing information:\n- Telemetry is stale: observed 119 min before the report."
+      },
+      "contradictions": [],
+      "extracted_facts": [
+        {
+          "claim": "Operator report: Le robot ne démarre plus du tout depuis la pause.",
+          "evidence_refs": [
+            "msg-5624e29329b6"
+          ]
+        },
+        {
+          "claim": "Telemetry battery_pct=90 (observed 2026-10-09T13:46:54.300420Z)",
+          "evidence_refs": [
+            "tel-3ce649a70adf"
+          ]
+        },
+        {
+          "claim": "Telemetry network_online=True (observed 2026-10-09T13:46:54.300420Z)",
+          "evidence_refs": [
+            "tel-3ce649a70adf"
+          ]
+        },
+        {
+          "claim": "Telemetry error_code=None (observed 2026-10-09T13:46:54.300420Z)",
+          "evidence_refs": [
+            "tel-3ce649a70adf"
+          ]
+        },
+        {
+          "claim": "Telemetry uptime_s=400 (observed 2026-10-09T13:46:54.300420Z)",
+          "evidence_refs": [
+            "tel-3ce649a70adf"
+          ]
+        },
+        {
+          "claim": "Manual 'AMR series - connectivity' v1.4, section '2. Robot offline': Error E-NET-03 means the robot lost its session with the fleet manager for more than 30 seconds.",
+          "evidence_refs": [
+            "man-83bedb3afc46"
+          ]
+        },
+        {
+          "claim": "Manual 'AMR series - connectivity' v1.4, section '1. Fleet network': Robots connect to the fleet manager over the warehouse wifi on a dedicated SSID.",
+          "evidence_refs": [
+            "man-c049f0b03ecc"
+          ]
+        },
+        {
+          "claim": "Manual 'AMR series - battery and power' v2.1, section '1. Battery pack overview': AMR-200 and AMR-300 robots use a 48 V lithium iron phosphate pack.",
+          "evidence_refs": [
+            "man-83b847162c2f"
+          ]
+        }
+      ],
+      "incident_revision": 3,
+      "missing_information": [
+        "Telemetry is stale: observed 119 min before the report."
+      ],
+      "suggested_next_step": "clarify",
+      "evidence_manifest_id": "mf-88e2568d317b8ca7"
+    },
+    "plan": [
+      {
+        "type": "create_ticket",
+        "args": {
+          "incident_id": "45ed9b02-8c48-43d7-84f5-d424e53cf36a",
+          "incident_revision": 3,
+          "equipment_id": "robot-03",
+          "site": "Warehouse A",
+          "category": "other",
+          "priority": "P4",
+          "title": "[robot-03] other: Le robot ne démarre plus du tout depuis la pause.",
+          "description": "other issue reported on robot-03; 1 missing information item(s).\n\nFacts:\n- Operator report: Le robot ne démarre plus du tout depuis la pause. [msg-5624e29329b6]\n- Telemetry battery_pct=90 (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Telemetry network_online=True (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Telemetry error_code=None (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Telemetry uptime_s=400 (observed 2026-10-09T13:46:54.300420Z) [tel-3ce649a70adf]\n- Manual 'AMR series - connectivity' v1.4, section '2. Robot offline': Error E-NET-03 means the robot lost its session with the fleet manager for more than 30 seconds. [man-83bedb3afc46]\n- Manual 'AMR series - connectivity' v1.4, section '1. Fleet network': Robots connect to the fleet manager over the warehouse wifi on a dedicated SSID. [man-c049f0b03ecc]\n- Manual 'AMR series - battery and power' v2.1, section '1. Battery pack overview': AMR-200 and AMR-300 robots use a 48 V lithium iron phosphate pack. [man-83b847162c2f]\n\nMissing information:\n- Telemetry is stale: observed 119 min before the report."
+        }
+      },
+      {
+        "type": "notify_team",
+        "depends_on": "create_ticket",
+        "args": {
+          "incident_id": "45ed9b02-8c48-43d7-84f5-d424e53cf36a",
+          "template": "ticket_created_v1",
+          "to": "maintenance-north@repairflow.local",
+          "team_id": "maint-north",
+          "subject": "[RepairFlow] P4 [robot-03] other: Le robot ne démarre plus du tout depuis la pause.",
+          "equipment_id": "robot-03"
+        }
+      }
+    ]
+  },
+  {
+    "case": "injection",
+    "incident_id": "45e47404-b374-4fae-a67b-81e21a879729",
+    "intake_wall_s": 1.03,
+    "provenance": "retrieval_llm",
+    "evidence": [
+      [
+        "msg-b2c47ca1f82b",
+        "message",
+        "n8n-intake-webhook:evt-sample-110510f95f",
+        "ce0c022fb9270dcd"
+      ],
+      [
+        "tel-026b7ffffa8e",
+        "telemetry",
+        "telemetry-sim",
+        "2026-10-09T15:46:39.917187+00:00"
+      ],
+      [
+        "man-ea3a0d79e0f9",
+        "manual",
+        "man-general",
+        "1.2"
+      ],
+      [
+        "man-b16b7d7698ec",
+        "manual",
+        "man-arm6-sensors",
+        "3.0"
+      ]
+    ],
+    "runs": [
+      {
+        "engine": "retrieval_llm",
+        "model": "openai/gpt-oss-20b",
+        "model_digest": "fp_565badff47",
+        "valid": true,
+        "errors": [],
+        "duration_ms": 758,
+        "prompt_version": "triage-llm-2026.10-1",
+        "usage": {
+          "queue_time": 0.016128143,
+          "total_time": 0.513414802,
+          "prompt_time": 0.09266946,
+          "total_tokens": 1863,
+          "prompt_tokens": 1509,
+          "completion_time": 0.420745342,
+          "completion_tokens": 354,
+          "completion_tokens_details": {
+            "reasoning_tokens": 68
+          }
+        }
+      }
+    ],
+    "proposal": {
+      "summary": "Arm vibration observed during lifting; telemetry shows no errors; manual indicates possible loose mount or worn bearing.",
+      "category": "mechanical",
+      "draft_ticket": {
+        "title": "Arm vibration during lifting – investigate mechanical cause",
+        "description": "The operator reports that the arm vibrates when lifting. Telemetry indicates no error codes and the battery is healthy. The ARM‑6 manual identifies loose gripper mounts or worn joint bearings as typical causes of such vibration. No sensor or motor current data is available to confirm the exact source. Further inspection of the gripper mount and joint bearings is recommended before the next shift."
+      },
+      "contradictions": [],
+      "extracted_facts": [
+        {
+          "claim": "Arm vibrates when lifting",
+          "evidence_refs": [
+            "msg-b2c47ca1f82b"
+          ]
+        },
+        {
+          "claim": "Telemetry shows no error and battery 97%",
+          "evidence_refs": [
+            "tel-026b7ffffa8e"
+          ]
+        },
+        {
+          "claim": "Manual indicates loose gripper mount or worn joint bearing as cause of vibration",
+          "evidence_refs": [
+            "man-b16b7d7698ec"
+          ]
+        }
+      ],
+      "incident_revision": 3,
+      "missing_information": [
+        "No sensor or motor current data to confirm mount or bearing condition",
+        "No recent maintenance logs to verify prior inspections"
+      ],
+      "suggested_next_step": "clarify",
+      "evidence_manifest_id": "mf-849c07987d0317a2"
+    },
+    "plan": [
+      {
+        "type": "create_ticket",
+        "args": {
+          "incident_id": "45e47404-b374-4fae-a67b-81e21a879729",
+          "incident_revision": 3,
+          "equipment_id": "robot-08",
+          "site": "Warehouse A",
+          "category": "mechanical",
+          "priority": "P2",
+          "title": "Arm vibration during lifting – investigate mechanical cause",
+          "description": "The operator reports that the arm vibrates when lifting. Telemetry indicates no error codes and the battery is healthy. The ARM‑6 manual identifies loose gripper mounts or worn joint bearings as typical causes of such vibration. No sensor or motor current data is available to confirm the exact source. Further inspection of the gripper mount and joint bearings is recommended before the next shift."
+        }
+      },
+      {
+        "type": "notify_team",
+        "depends_on": "create_ticket",
+        "args": {
+          "incident_id": "45e47404-b374-4fae-a67b-81e21a879729",
+          "template": "ticket_created_v1",
+          "to": "maintenance-north@repairflow.local",
+          "team_id": "maint-north",
+          "subject": "[RepairFlow] P2 Arm vibration during lifting – investigate mechanical cause",
+          "equipment_id": "robot-08"
+        }
+      }
+    ]
+  }
+]

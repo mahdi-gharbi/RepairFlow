@@ -83,7 +83,8 @@ function refs(list) { return list.map((r) => `<a class="ref" data-ref="${esc(r)}
 
 async function loadDetail() {
   if (!current) return;
-  const [d, tl] = await Promise.all([api("/v1/incidents/" + current), api("/v1/incidents/" + current + "/timeline")]);
+  const [d, tl, runs] = await Promise.all([api("/v1/incidents/" + current), api("/v1/incidents/" + current + "/timeline"),
+    api("/v1/incidents/" + current + "/triage-runs").catch(() => [])]);
   const rv = d.review, p = rv.proposal, ov = d.revision_data.overrides || {};
   const canReview = d.status === "needs_review";
   let h = `<div class="card"><h2>${esc(d.equipment.display_name)} (${esc(d.equipment_id)}, ${esc(d.equipment.model)}) ${pill(d.status)}</h2>
@@ -111,11 +112,12 @@ async function loadDetail() {
         <input id="c-note" style="margin-top:6px" placeholder="correction note (required)">
         <div class="row"><button class="btn secondary" id="b-correct">Save correction</button>
           <button class="btn" id="b-approve">Approve revision ${d.revision}</button>
-          <button class="btn danger" id="b-reject">Reject</button></div>`;
+          <button class="btn danger" id="b-reject">Reject</button>
+          <button class="btn secondary" id="b-retriage">Re-run triage</button></div>`;
     }
     h += `</div>`;
   } else {
-    h += `<div class="card warn">No valid proposal for revision ${d.revision}. ${canReview ? '<button class="btn secondary" id="b-triage">Run rules triage</button>' : ""}</div>`;
+    h += `<div class="card warn">No valid proposal for revision ${d.revision}. ${canReview ? '<button class="btn secondary" id="b-triage">Run triage</button>' : ""}</div>`;
   }
   h += `<div class="card"><h2>Actions</h2><table><tr><th>type</th><th>status</th><th>attempts</th><th>provider ref</th><th>last error</th><th></th></tr>
     ${d.actions.map((a) => `<tr><td>${esc(a.type)}</td><td>${pill(a.status)}</td><td>${a.attempts} (offers ${a.offers}, fence ${a.fencing_token})</td>
@@ -124,6 +126,12 @@ async function loadDetail() {
         <button class="btn secondary" data-res="${a.id}" data-dec="retry">Retry</button>
         <button class="btn secondary" data-res="${a.id}" data-dec="mark_succeeded">Mark sent</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">none</td></tr>'}</table>
     ${d.actions.some((a) => a.type === "notify_team" && a.status === "uncertain") ? '<div class="warn">An email outcome is unknown. SMTP gives no idempotency: retrying may send a duplicate. Check Mailpit or reconcile first.</div>' : ""}</div>`;
+  h += `<details class="card"><summary><b>Technical: triage runs</b> <span class="muted">(engine, model, validation errors)</span></summary>
+    <table><tr><th>at</th><th>rev</th><th>engine</th><th>model / fingerprint</th><th>valid</th><th>ms</th><th>errors</th></tr>
+    ${runs.map((r) => `<tr><td class="mono">${esc(r.at.slice(11, 19))}</td><td>${r.revision}</td><td>${esc(r.engine)}</td>
+      <td class="mono">${esc(r.model || "-")}<br>${esc(r.model_digest || "")}</td><td>${r.valid ? "yes" : "no"}</td><td>${r.duration_ms}</td>
+      <td class="mono">${esc((r.errors || []).join(" | ").slice(0, 300))}</td></tr>`).join("")}</table>
+    <div class="muted">LLM output is a proposal: actions, priority and recipients come from the deterministic policy.</div></details>`;
   h += `<div class="card"><h2>Timeline</h2><div class="tl"><table>${tl.map((t) => `<tr><td class="mono">${esc(t.at.slice(11, 23))}</td><td><b>${esc(t.event)}</b><br><span class="muted">${esc(t.actor)}</span></td>
     <td>${t.from || t.to ? esc(t.from || "") + " → " + esc(t.to || "") : ""}</td><td class="mono">${esc(JSON.stringify(t.payload))}</td></tr>`).join("")}</table></div></div>`;
   $("#detail").innerHTML = h;
@@ -131,6 +139,7 @@ async function loadDetail() {
   document.querySelectorAll("a.ref").forEach((a) => a.onclick = () => { const el = document.getElementById("ev-" + a.dataset.ref); if (el) { el.scrollIntoView({ block: "center" }); el.style.outline = "2px solid var(--accent)"; } });
   const act = async (fn, okText) => { try { await fn(); say(okText, "ok"); } catch (e) { say(`${e.status || ""} ${e.body?.error || ""}: ${e.message}`, "err"); } await loadDetail(); await loadList(); };
   $("#b-triage") && ($("#b-triage").onclick = () => act(() => api(`/v1/incidents/${d.id}/triage`, { method: "POST" }), "triage done"));
+  $("#b-retriage") && ($("#b-retriage").onclick = () => act(() => api(`/v1/incidents/${d.id}/triage`, { method: "POST" }), "triage re-run"));
   $("#b-approve") && ($("#b-approve").onclick = () => act(() => api(`/v1/incidents/${d.id}/approve`, { method: "POST",
     body: JSON.stringify({ expected_revision: d.revision, plan_digest: rv.plan_digest }) }), "approved"));
   $("#b-reject") && ($("#b-reject").onclick = () => act(() => api(`/v1/incidents/${d.id}/reject`, { method: "POST",

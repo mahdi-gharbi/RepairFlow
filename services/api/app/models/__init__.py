@@ -3,9 +3,10 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func,
+    BigInteger, Boolean, CheckConstraint, Computed, Date, DateTime, ForeignKey, Index, Integer, String, Text,
+    UniqueConstraint, func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 INCIDENT_STATES = ("received", "enriching", "needs_review", "approved", "dispatching", "completed", "blocked", "rejected")
@@ -102,7 +103,32 @@ class TriageRun(Base):
     valid: Mapped[bool] = mapped_column(Boolean)
     errors: Mapped[list] = mapped_column(JSONB, default=list)
     duration_ms: Mapped[int] = mapped_column(Integer)
+    # Exact context sent to the model and inference parameters / response metadata (no secrets).
+    context: Mapped[dict | None] = mapped_column(JSONB)
+    params: Mapped[dict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RetrievalChunk(Base):
+    """One manual section. Lexical index = PostgreSQL full-text (english config) on section + text."""
+    __tablename__ = "retrieval_chunks"
+    __table_args__ = (
+        UniqueConstraint("source_id", "version", "section", name="uq_chunk"),
+        Index("ix_chunks_tsv", "tsv", postgresql_using="gin"),
+    )
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)  # source_id@version#n
+    source_id: Mapped[str] = mapped_column(String(64))
+    version: Mapped[str] = mapped_column(String(32))
+    published_at: Mapped[datetime] = mapped_column(Date)
+    title: Mapped[str] = mapped_column(String(200))
+    section: Mapped[str] = mapped_column(String(200))
+    span_start: Mapped[int] = mapped_column(Integer)
+    span_end: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(Text)
+    models: Mapped[list[str]] = mapped_column(ARRAY(String(64)))
+    superseded: Mapped[bool] = mapped_column(Boolean, default=False)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    tsv = mapped_column(TSVECTOR, Computed("to_tsvector('english', section || ' ' || text)", persisted=True))
 
 
 class Approval(Base):

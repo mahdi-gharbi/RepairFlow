@@ -8,9 +8,10 @@ reconciliation when a provider fails or answers ambiguously.
 > The question it answers: *how do you automate repetitive work without losing control when a model is wrong or an
 > API goes down?*
 
-**Status (2026-10-09):** milestones M0–M2 done (rule-based triage, real n8n workflows, outbox, reconciliation,
-fault-injection tests). The local LLM, document retrieval, full dashboard and Replay Lab are not built yet — see
-[`PROGRESS.md`](PROGRESS.md). All connectors are local: a fictional ticket service and Mailpit. Fleet, sites and
+**Status (2026-10-09):** milestones M0–M3 done: real n8n workflows, outbox, reconciliation, fault-injection tests,
+manual retrieval (PostgreSQL full-text) and structured LLM proposals with a rules fallback. The LLM is a **remote**
+model (Groq, `openai/gpt-oss-20b`) by the owner's choice; switching to a local OpenAI-compatible server (Ollama) is a
+configuration change. The full dashboard and the Replay Lab are not built yet — see [`PROGRESS.md`](PROGRESS.md). All connectors are local: a fictional ticket service and Mailpit. Fleet, sites and
 teams are fictional.
 
 ## What the demo shows
@@ -48,6 +49,7 @@ report ─> n8n W1 intake ─> FastAPI/PostgreSQL <── reviewer (approve revi
 * **PostgreSQL** holds every decision and is the only clock. **n8n** runs connectors. **The worker** re-offers,
   expires leases and reconciles. Details: [`docs/architecture.md`](docs/architecture.md).
 * Guarantees differ per connector (idempotent ticket API vs SMTP): [`docs/reliability.md`](docs/reliability.md).
+* LLM configuration, observed runs and limits: [`docs/model-card.md`](docs/model-card.md).
 * State machines: [`docs/state-machine.md`](docs/state-machine.md). n8n exports: [`workflows/`](workflows/) with
   [`manifest.json`](workflows/manifest.json) (n8n 2.42.6).
 
@@ -64,5 +66,5 @@ They establish properties of the tested scenarios and providers, not a universal
 
 ## Stack
 
-n8n Community 2.42.6 (self-hosted) · FastAPI · Pydantic · SQLAlchemy · Alembic · PostgreSQL 17 · Mailpit ·
+n8n Community 2.42.6 (self-hosted) · Groq API (OpenAI-compatible, strict JSON schema) · FastAPI · Pydantic · SQLAlchemy · Alembic · PostgreSQL 17 · Mailpit ·
 Docker Compose · pytest.

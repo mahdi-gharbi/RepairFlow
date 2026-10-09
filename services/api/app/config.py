@@ -21,6 +21,11 @@ class Settings:
     mailpit_url: str = field(default_factory=lambda: _env("RF_MAILPIT_URL", "http://mailpit:8025"))
     # Telemetry older than this (relative to the report) is flagged as stale.
     telemetry_max_age_s: int = field(default_factory=lambda: int(_env("RF_TELEMETRY_MAX_AGE_S", "3600")))
+    # OpenAI-compatible chat endpoint for structured triage. Empty base URL = rules engine only.
+    llm_base_url: str = field(default_factory=lambda: _env("RF_LLM_BASE_URL", ""))
+    llm_model: str = field(default_factory=lambda: _env("RF_LLM_MODEL", ""))
+    llm_api_key: str = field(default_factory=lambda: _env("RF_LLM_API_KEY", ""))
+    llm_timeout_s: float = field(default_factory=lambda: float(_env("RF_LLM_TIMEOUT_S", "30")))
 
 
 _settings: Settings | None = None

@@ -55,7 +55,8 @@ def ready_incident(equipment="robot-07", battery=12) -> str:
     tel = {"source_id": "telemetry-sim", "available": True, "observed_at": datetime.now(timezone.utc).isoformat(),
            "values": {"battery_pct": battery, "network_online": True}}
     assert httpx.post(f"{API}/v1/incidents/{iid}/evidence/telemetry", json=tel, headers=INTERNAL).status_code == 200
-    assert httpx.post(f"{API}/v1/incidents/{iid}/triage", headers=INTERNAL).status_code == 200
+    # Rules engine: tests must not depend on (or spend quota of) the remote LLM.
+    assert httpx.post(f"{API}/v1/incidents/{iid}/triage?engine=rules", headers=INTERNAL, timeout=30).status_code == 200
     return iid
 
 

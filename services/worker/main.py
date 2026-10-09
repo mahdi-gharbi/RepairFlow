@@ -90,12 +90,11 @@ def recover_stalled_intake() -> None:
     with session() as db:
         ids = incidents.stalled_enrichment(db, STALLED_INTAKE_S)
     for incident_id in ids:
-        with session() as db:
-            try:
-                run = incidents.triage(db, incident_id, OWNER)
-                emit("stalled_intake_recovered", incident_id=str(incident_id), triage_valid=run.valid)
-            except DomainError as exc:  # state changed concurrently
-                emit("stalled_intake_skipped", incident_id=str(incident_id), reason=exc.code)
+        try:
+            run = incidents.triage(session, incident_id, OWNER, engine="rules")
+            emit("stalled_intake_recovered", incident_id=str(incident_id), triage_valid=run.valid)
+        except DomainError as exc:  # state changed concurrently
+            emit("stalled_intake_skipped", incident_id=str(incident_id), reason=exc.code)
 
 
 def main() -> None:

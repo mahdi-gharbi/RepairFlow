@@ -16,8 +16,8 @@ code, identifiers and README in English.
   by-key lookup (tickets) are retried automatically after an unknown outcome. Never claim exactly-once.
 * Recipients, priorities and allowed action types come from config/policy, never from report text or model output.
 * The rules engine (`app/triage/rules.py`) must keep working without any LLM.
-* Never present a mock, an unimported workflow JSON or an invented output as a real integration. Mark the LLM
-  integration incomplete until a real Ollama run is recorded.
+* Never present a mock, an unimported workflow JSON or an invented output as a real integration. The LLM is remote
+  (Groq, key `GROQ_API_KEY` in `.env` only); tests use a labelled local provider double and never the real provider.
 
 ## Commands
 

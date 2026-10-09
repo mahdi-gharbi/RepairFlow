@@ -8,8 +8,8 @@ Journal de travail (français). Cible finale : **V1.1**. Dernière mise à jour 
 |---|---|---|
 | M0 — Environnement et contrats | ✅ fait | clone propre → `.env` neuf → `compose up --build` → provisioning depuis les exports → démo OK (voir §3) |
 | M1 — Tranche sans LLM | ✅ fait | 3 workflows n8n réellement exécutés (W1, W3, W4), ticket `TCK-1000` dans ticket-service, email dans Mailpit, audit de bout en bout, approbation depuis `/review` |
-| M2 — Fiabilité et concurrence | ✅ cœur fait | 37 tests verts : 9 unitaires, 18 intégration PostgreSQL, 10 pannes via le vrai n8n (§4). Reste : petit test de charge documenté |
-| M3 — Preuves et propositions IA | ⏳ à faire | Ollama **non installé** (décision demandée, §6). Le fallback à règles est opérationnel et indépendant |
+| M2 — Fiabilité et concurrence | ✅ cœur fait | tests verts (§4). Reste : petit test de charge documenté |
+| M3 — Preuves et propositions IA | ✅ fait (LLM **distant** Groq, décision du porteur) | corpus + index full-text PostgreSQL, sections de manuels snapshotées et citées, sortie `openai/gpt-oss-20b` réelle validée (4/6 runs valides, 2 limités par le débit → fallback règles), 14 tests de contrat LLM/retrieval |
 | M4 — Dashboard complet, recovery/digest n8n | ⏳ à faire | page provisoire `/review` seulement ; W5/W6 non créés |
 | M5 — Replay Lab, évaluation | ⏳ à faire | injection de pannes déjà disponible dans les simulateurs |
 | M6 — Extensions | facultatif | — |
@@ -28,6 +28,7 @@ Journal de travail (français). Cible finale : **V1.1**. Dernière mise à jour 
 | Nodes n8n (lus dans `n8n-nodes-base/dist`) | Webhook 2, HTTP Request 4.2, Code 2, If 2.2, Respond to Webhook 1.1, Send Email 2.1 |
 | PostgreSQL | `postgres:17-alpine` (n8n 2.42 signale PG16 comme « compatibility support only » → passage à 17) |
 | Mailpit | `axllent/mailpit:v1.31.4` |
+| LLM (distant) | Groq `openai/gpt-oss-20b`, prompt `triage-llm-2026.10-1` (voir `docs/model-card.md`) |
 | Python (images) | `python:3.12-slim`, FastAPI 0.115.12, SQLAlchemy 2.0.40, psycopg 3.2.6, Alembic 1.15.2, Pydantic 2.11.3 |
 
 ## 3. Commandes
@@ -74,6 +75,16 @@ Bugs trouvés et corrigés par ces exécutions :
 `git clone` dans un répertoire temporaire, `init_env.py`, `COMPOSE_PROJECT_NAME=rfclean docker compose up -d --build`
 (volumes vierges), `provision_n8n.sh` (import des exports normalisés) → `demo.py` : succès complet, `TCK-1000` + 1 email.
 
+### M3 (2026-10-09, 15:40–16:10 UTC)
+
+* **Changement de périmètre décidé par le porteur** : LLM via l'API Groq (distant) au lieu d'Ollama local. Clé dans `.env` uniquement (gitignoré, absente des exports — vérifié par le scan du provisioning). **À faire par le porteur : révoquer la clé collée dans la conversation et en créer une nouvelle.**
+* Corpus : 5 manuels fictifs (`data/manuals`), dont une v1.0 périmée qui donne un conseil contredit par la v2.1. 15 sections indexées (`retrieval_chunks`, tsvector `english` + GIN). Filtre modèle + exclusion des versions périmées **avant** classement ; bonus explicite pour la correspondance exacte d'un code d'erreur.
+* W1 a un nœud de plus : `Retrieve manuals` → `POST /v1/incidents/{id}/evidence/manuals` (nouvelle révision seulement si l'ensemble change).
+* Triage en 3 phases (lecture → appel LLM sans transaction → décision sous verrou). Schéma JSON strict par requête (refs = enum du manifest), revalidation Pydantic + refs, une réparation max, fallback règles.
+* Runs réels : `python scripts/sample_llm_runs.py` → `artifacts/demo/llm_runs_20261009T154655Z.json`. Détails et limites : `docs/model-card.md`.
+* Découvertes : (1) même contexte, mêmes paramètres → d'abord `json_validate_failed` puis succès au rejeu (non-déterminisme fournisseur) → traité comme erreur de format réparable ; (2) limite 8000 tokens/min du palier gratuit → ~3 triages/min, le reste en fallback ; (3) les messages d'erreur Groq contiennent l'identifiant d'organisation → expurgés.
+* Suite complète : **51 passed** (9 unit, 18 fiabilité, 9 contrat LLM avec double local du fournisseur, 5 retrieval, 10 pannes n8n), 4 min 25.
+
 ## 5. Décisions prises (détails courants)
 
 * Répartition n8n / API / worker : `docs/architecture.md`.
@@ -87,11 +98,11 @@ Bugs trouvés et corrigés par ces exécutions :
 
 ## 6. Travail restant (ordre proposé)
 
-1. **M3** — décision Ollama (voir question posée) ; corpus de manuels fictifs, `retrieval_chunks` + full-text PostgreSQL, citations de manuels dans la proposition, client Ollama avec schéma JSON + revalidation Pydantic + une réparation de format max + fallback règles ; runs enregistrés dans `triage_runs`. Tests : LLM indisponible, JSON invalide, refs inventées, injection.
+1. **Sécurité** — révoquer la clé Groq exposée dans la conversation (porteur).
 2. **M2 (compléments)** — petit test de charge documenté (débit, matériel) ; workflow d'erreur n8n vérifié avec une vraie erreur.
 3. **M4** — dashboard React + TS (liste/filtres, revue versionnée, timeline, actions incertaines), SSE `/v1/events`, W5 recovery et W6 digest (clé de période), Playwright sur le parcours essentiel.
 4. **M5** — `replay_runs`, namespace sandbox avec action_keys propres, scénarios du §12, dataset 60–100 cas FR/EN (labels relus à la main), rapport comparatif règles / LLM / LLM+preuves.
-5. Docs : `docs/model-card.md` (M3), vidéo de démo (M5).
+5. Docs : vidéo de démo (M5). Évaluation du LLM avec pacing (limite de débit) et comparaison règles / LLM sans preuves / LLM + preuves lexicales.
 
 ## 7. Scénarios à reproduire soi-même (préparation entretien)
 

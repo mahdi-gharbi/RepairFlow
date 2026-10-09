@@ -112,17 +112,19 @@ w1 = workflow("RFw01Intake00001", "RF 01 Intake and enrichment", [
     http(W1, "Record telemetry", "POST",
          "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/telemetry",
          [1100, 200], body="={{ JSON.stringify($json) }}"),
+    http(W1, "Retrieve manuals", "POST",
+         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/manuals", [1210, 200]),
     http(W1, "Run triage", "POST",
-         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage", [1320, 200]),
+         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage", [1430, 200], timeout=90000),
     respond(W1, "Respond created", 201,
             "={{ JSON.stringify({ incident_id: $('Create incident').first().json.body.incident_id, "
             "correlation_id: $('Create incident').first().json.body.correlation_id, replayed: false, "
             "telemetry_available: $('Build telemetry evidence').first().json.available, "
-            "triage_http_status: $json.statusCode, triage: $json.body }) }}", [1540, 200]),
+            "triage_http_status: $json.statusCode, triage: $json.body }) }}", [1650, 200]),
 ], link(("Intake webhook", "Create incident", 0), ("Create incident", "New incident?", 0),
         ("New incident?", "Fetch telemetry", 0), ("New incident?", "Respond replay or rejection", 1),
         ("Fetch telemetry", "Build telemetry evidence", 0), ("Build telemetry evidence", "Record telemetry", 0),
-        ("Record telemetry", "Run triage", 0), ("Run triage", "Respond created", 0)))
+        ("Record telemetry", "Retrieve manuals", 0), ("Retrieve manuals", "Run triage", 0), ("Run triage", "Respond created", 0)))
 
 # --- W3 dispatch: ticket ------------------------------------------------------------------------
 

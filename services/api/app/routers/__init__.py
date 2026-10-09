@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
@@ -45,12 +46,21 @@ def add_telemetry(incident_id: uuid.UUID, tel: TelemetryEvidence, p: Principal =
     return _incident_summary(incident)
 
 
-@router.post("/incidents/{incident_id}/triage")
-def run_triage(incident_id: uuid.UUID, p: Principal = Depends(principal), db: Session = Depends(get_db)):
-    require(p, "internal", "reviewer")
-    run = incidents.triage(db, incident_id, p.name)
-    return {"triage_run_id": str(run.id), "engine": run.engine, "valid": run.valid, "errors": run.errors,
+def _triage_view(run) -> dict:
+    return {"triage_run_id": str(run.id), "engine": run.engine, "model": run.model, "valid": run.valid, "errors": run.errors,
             "revision": run.incident_revision, "suggested_next_step": (run.proposal or {}).get("suggested_next_step")}
+
+
+@router.post("/incidents/{incident_id}/evidence/manuals")
+def add_manuals(incident_id: uuid.UUID, p: Principal = Depends(principal), db: Session = Depends(get_db)):
+    require(p, "internal", "reviewer")
+    return incidents.add_manual_evidence(db, incident_id, p.name)
+
+
+@router.post("/incidents/{incident_id}/triage")
+def run_triage(incident_id: uuid.UUID, engine: Literal["auto", "rules"] = "auto", p: Principal = Depends(principal)):
+    require(p, "internal", "reviewer")
+    return _triage_view(incidents.triage(session, incident_id, p.name, engine))
 
 
 @router.get("/incidents")
@@ -97,14 +107,18 @@ def timeline(incident_id: uuid.UUID, p: Principal = Depends(principal), db: Sess
 def triage_runs(incident_id: uuid.UUID, p: Principal = Depends(principal), db: Session = Depends(get_db)):
     require(p, "reviewer", "internal")
     rows = db.execute(select(TriageRun).where(TriageRun.incident_id == incident_id).order_by(TriageRun.created_at)).scalars()
-    return [{"id": str(r.id), "revision": r.incident_revision, "engine": r.engine, "model": r.model, "prompt_version": r.prompt_version,
-             "valid": r.valid, "errors": r.errors, "duration_ms": r.duration_ms, "input_hash": r.input_hash} for r in rows]
+    return [{"id": str(r.id), "at": r.created_at, "revision": r.incident_revision, "engine": r.engine, "model": r.model,
+             "model_digest": r.model_digest, "prompt_version": r.prompt_version, "valid": r.valid, "errors": r.errors,
+             "duration_ms": r.duration_ms, "input_hash": r.input_hash, "params": r.params, "raw_output": r.raw_output,
+             "proposal": r.proposal} for r in rows]
 
 
 @router.post("/incidents/{incident_id}/corrections")
 def correct(incident_id: uuid.UUID, corr: Correction, p: Principal = Depends(principal), db: Session = Depends(get_db)):
     require(p, "reviewer")
-    return _incident_summary(incidents.correct(db, incident_id, corr, p.name))
+    incident = incidents.correct(db, incident_id, corr, p.name)
+    run = incidents.triage(session, incident_id, p.name)  # proposal for the new revision (LLM or rules fallback)
+    return {**_incident_summary(incident), "revision": run.incident_revision, "triage": _triage_view(run)}
 
 
 @router.post("/incidents/{incident_id}/approve")

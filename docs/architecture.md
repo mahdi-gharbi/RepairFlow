@@ -16,13 +16,21 @@ a durable business record (it can be pruned, an execution can die mid-way, a web
 Every decision that must survive restarts and races is therefore taken inside a PostgreSQL transaction by
 the API, and n8n is asked to perform exactly one approved effect per authorized `begin`.
 
+## LLM placement
+
+The structured-triage call is made by the API (`app/triage/llm.py`), not by an n8n node: recording the exact context,
+validating references against the manifest, the single repair and the rules fallback all need the database, and the
+call is read-only inference (no external effect). n8n W1 still orchestrates the enrichment order
+(telemetry → manuals → triage). The API never holds a transaction while waiting for the model.
+
 ## Flow
 
 ```text
 operator ──POST /webhook/rf-intake (X-Intake-Key)──> n8n W1
   W1 ──POST /v1/incidents──────────────> API  (INSERT .. ON CONFLICT on (source_scope, event_id))
   W1 ──GET  telemetry-sim──> (available or not) ──POST /evidence/telemetry──> API (new revision)
-  W1 ──POST /v1/incidents/{id}/triage──> API (rules engine, refs validated against manifest)
+  W1 ──POST /v1/incidents/{id}/evidence/manuals──> API (full-text retrieval, snapshot, new revision if changed)
+  W1 ──POST /v1/incidents/{id}/triage──> API (LLM strict schema → validation → else rules engine)
 
 reviewer ──/review page──> API: corrections (new revision) / approve(expected_revision, plan_digest)
   approve = one transaction: approval + actions(frozen args, action_key) + outbox rows
