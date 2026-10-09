@@ -1,9 +1,9 @@
 """Incident lifecycle: atomic intake, immutable revisions, triage, corrections and versioned approval."""
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,15 +21,16 @@ from app.transitions import ACTION_NOT_STARTED, check_action, check_incident
 from app.triage import rules
 
 
-def now() -> datetime:
-    return datetime.now(timezone.utc)
+def now(db: Session) -> datetime:
+    """PostgreSQL is the only clock (transaction start time): leases stay consistent across hosts."""
+    return db.execute(text("SELECT now()")).scalar_one()
 
 
 def set_incident_status(db: Session, incident: Incident, target: str, actor: str, event: str, **payload) -> None:
     previous = incident.status
     check_incident(previous, target)
     incident.status = target
-    incident.updated_at = now()
+    incident.updated_at = now(db)
     audit.record(db, event, actor, incident_id=incident.id, correlation_id=incident.correlation_id,
                  from_state=previous, to_state=target, payload=payload)
 
@@ -38,7 +39,7 @@ def set_action_status(db: Session, action: Action, target: str, actor: str, even
     previous = action.status
     check_action(previous, target)
     action.status = target
-    action.updated_at = now()
+    action.updated_at = now(db)
     audit.record(db, event, actor, incident_id=action.incident_id, action_id=action.id, correlation_id=correlation_id,
                  from_state=previous, to_state=target, payload=payload)
 
@@ -279,7 +280,7 @@ def correct(db: Session, incident_id: uuid.UUID, corr: Correction, actor: str) -
         if getattr(corr, field) is not None:
             overrides[field] = getattr(corr, field)
     data = {**prev.data, "overrides": overrides,
-            "notes": prev.data["notes"] + [{"by": actor, "at": now().isoformat(), "note": corr.note}]}
+            "notes": prev.data["notes"] + [{"by": actor, "at": now(db).isoformat(), "note": corr.note}]}
     _new_revision(db, incident, data, "reviewer_correction", actor)
     if incident.status == "approved":
         invalidate_approval(db, incident, actor, "reviewer correction")
@@ -319,7 +320,7 @@ def approve(db: Session, incident_id: uuid.UUID, req: ApproveRequest, reviewer: 
         db.add(action)
         db.flush()
         # Dependent actions are not eligible until their dependency succeeds.
-        db.add(Outbox(action_id=action.id, available_at=None if action.depends_on else now()))
+        db.add(Outbox(action_id=action.id, available_at=None if action.depends_on else now(db)))
         audit.record(db, "action_planned", reviewer, incident_id=incident.id, action_id=action.id,
                      correlation_id=incident.correlation_id, to_state="pending",
                      payload={"type": action.type, "action_key": action.action_key})

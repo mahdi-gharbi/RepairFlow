@@ -22,8 +22,11 @@ from app.errors import Conflict, Invalid, NotFound
 from app.incidents import lock_incident, now, set_action_status, set_incident_status
 from app.models import Action, Approval, Incident, Outbox
 
-OFFER_LEASE = timedelta(seconds=30)      # time for n8n to call /begin after the webhook
-EXECUTING_LEASE = timedelta(seconds=90)  # time for the connector call + /ack
+OFFER_LEASE = timedelta(seconds=30)  # time for n8n to call /begin after the webhook
+# Time for the connector call + /ack, derived from each connector's real timeout: the ticket HTTP
+# node times out after 10 s; n8n's SMTP node exposes no timeout and nodemailer waits up to 120 s
+# to connect. An attempt outliving its lease becomes `uncertain`; a late ack of it still resolves it.
+EXECUTING_LEASE = {"create_ticket": timedelta(seconds=60), "notify_team": timedelta(seconds=180)}
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_S, BACKOFF_CAP_S = 2.0, 300.0
 # Connectors with an idempotent by-key lookup can be reconciled and retried automatically.
@@ -67,7 +70,7 @@ def _token_ok(ob: Outbox, fencing: int, token: str) -> bool:
 def claim(db: Session, owner: str, limit: int = 10) -> list[dict]:
     """Short transaction: lock eligible rows (SKIP LOCKED), lease them, bump the fencing token, commit.
     The caller performs the network call only after this returns."""
-    t = now()
+    t = now(db)
     rows = db.execute(
         select(Outbox).join(Action, Action.id == Outbox.action_id)
         .where(Action.status.in_(("pending", "retry_wait")), Outbox.available_at.is_not(None), Outbox.available_at <= t)
@@ -100,7 +103,7 @@ def release_offer(db: Session, action_id: uuid.UUID, fencing: int, owner: str, r
         db.rollback()
         return
     delay = backoff(ob.offers)
-    ob.available_at, ob.lease_owner, ob.lease_until = now() + timedelta(seconds=delay), None, None
+    ob.available_at, ob.lease_owner, ob.lease_until = now(db) + timedelta(seconds=delay), None, None
     set_action_status(db, action, "retry_wait", owner, "dispatch_not_received", reason=reason, retry_in_s=round(delay, 1))
     db.commit()
 
@@ -108,7 +111,7 @@ def release_offer(db: Session, action_id: uuid.UUID, fencing: int, owner: str, r
 def sweep_expired(db: Session, owner: str) -> list[uuid.UUID]:
     """Lease expiry. offered: begin never happened, so no effect started -> back to pending.
     executing: the effect may have happened -> uncertain (reconciled or escalated, never blindly retried)."""
-    t = now()
+    t = now(db)
     expired = db.execute(
         select(Outbox).join(Action, Action.id == Outbox.action_id)
         .where(Action.status.in_(("offered", "executing")), Outbox.lease_until < t)
@@ -147,7 +150,7 @@ def begin(db: Session, action_id: uuid.UUID, req: BeginRequest, actor: str) -> d
     if action.status != "offered":
         db.rollback()
         raise Conflict("not_offered", f"action is {action.status}")
-    if ob.lease_until is None or ob.lease_until < now():
+    if ob.lease_until is None or ob.lease_until < now(db):
         db.rollback()
         raise Conflict("lease_expired", "offer lease expired before begin")
 
@@ -170,7 +173,7 @@ def begin(db: Session, action_id: uuid.UUID, req: BeginRequest, actor: str) -> d
         context["message_marker"] = email_marker(action)
 
     ob.attempts += 1
-    ob.lease_until = now() + EXECUTING_LEASE
+    ob.lease_until = now(db) + EXECUTING_LEASE[action.type]
     set_action_status(db, action, "executing", actor, "action_begin", incident.correlation_id,
                       fencing_token=ob.fencing_token, attempt=ob.attempts)
     if incident.status in ("approved", "blocked"):
@@ -218,7 +221,7 @@ def ack(db: Session, action_id: uuid.UUID, req: AckRequest, actor: str) -> dict:
             _block(db, incident, actor, action)
         else:
             delay = req.retry_after_s if (req.outcome == "rate_limited" and req.retry_after_s is not None) else backoff(ob.attempts)
-            ob.available_at = now() + timedelta(seconds=delay)
+            ob.available_at = now(db) + timedelta(seconds=delay)
             set_action_status(db, action, "retry_wait", actor, "action_retry_scheduled", incident.correlation_id,
                               retry_in_s=round(delay, 1), **evidence)
     elif req.outcome == "permanent":
@@ -238,7 +241,7 @@ def _succeed(db: Session, incident: Incident, action: Action, reference: str, ac
     set_action_status(db, action, "succeeded", actor, event, incident.correlation_id, **evidence)
     for dep in db.execute(select(Action).where(Action.depends_on == action.id, Action.status == "pending")).scalars():
         dep_ob = db.execute(select(Outbox).where(Outbox.action_id == dep.id).with_for_update()).scalar_one()
-        dep_ob.available_at = now()
+        dep_ob.available_at = now(db)
         audit.record(db, "action_released", actor, incident_id=incident.id, action_id=dep.id,
                      correlation_id=incident.correlation_id, payload={"dependency": str(action.id)})
     remaining = db.execute(select(Action).where(
@@ -307,7 +310,7 @@ def reconcile(session_factory, action_id: uuid.UUID, actor: str) -> dict:
             _succeed(db, incident, action, reference, actor, "reconciled_found", payload)
         elif finding == "absent" and kind in RECONCILABLE:
             # Safe to re-dispatch: the ticket provider deduplicates on Idempotency-Key.
-            ob.available_at = now()
+            ob.available_at = now(db)
             set_action_status(db, action, "retry_wait", actor, "reconciled_absent_retry", incident.correlation_id, **payload)
         else:
             # Email absent from Mailpit or lookup error: evidence for a human, not an automatic retry.
@@ -330,7 +333,7 @@ def resolve(db: Session, action_id: uuid.UUID, req: ResolveRequest, reviewer: st
             raise Invalid("missing_provider_reference", "give the reference observed at the provider")
         _succeed(db, incident, action, req.provider_reference, reviewer, "resolved_succeeded", payload)
     elif req.decision == "retry":
-        ob.available_at = now()
+        ob.available_at = now(db)
         set_action_status(db, action, "retry_wait", reviewer, "resolved_retry", incident.correlation_id, **payload)
     else:
         if action.status == "uncertain":
