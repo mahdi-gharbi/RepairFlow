@@ -194,3 +194,17 @@ class AuditEvent(Base):
     to_state: Mapped[str | None] = mapped_column(String(32))
     payload: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Digest(Base):
+    """One digest per period key: a second run for the same period does not send a second email
+    once the first is acknowledged as sent. Reserved-but-unsent digests can be retried."""
+    __tablename__ = "digests"
+    __table_args__ = (CheckConstraint("status IN ('reserved', 'sent')", name="ck_digest_status"),)
+    period_key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    status: Mapped[str] = mapped_column(String(16))
+    content: Mapped[dict] = mapped_column(JSONB)
+    attempts: Mapped[int] = mapped_column(Integer, default=1)
+    message_id: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

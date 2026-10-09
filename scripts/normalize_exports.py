@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 WF = ROOT / "workflows"
 KEEP = ("id", "name", "description", "nodes", "connections", "settings", "pinData", "staticData", "meta", "tags")
 N8N_VERSION = sys.argv[1] if len(sys.argv) > 1 else "unknown"
-FILES = ["01_intake.json", "03_dispatch_ticket.json", "04_dispatch_notification.json"]
+FILES = sorted(p.name for p in WF.glob("[0-9][0-9]_*.json"))
 
 manifest = {
     "n8n_version": N8N_VERSION,

@@ -1,0 +1,72 @@
+{
+  "id": "RFw00ErrorHndl1x",
+  "name": "RF 00 Error handler",
+  "description": null,
+  "nodes": [
+    {
+      "id": "66f4e3b2-ee84-5ead-9a3d-790fb8b8be28",
+      "name": "Error trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "d3ec9e99-8a48-5245-b83e-ff8eceba6c8f",
+      "name": "Report to API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/v1/ops/n8n-errors",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: $json.workflow.id, workflow_name: $json.workflow.name, execution_id: String($json.execution.id ?? ''), mode: $json.execution.mode, last_node: $json.execution.lastNodeExecuted, message: String(($json.execution.error || {}).message || '').slice(0, 1000) }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Error trigger": {
+      "main": [
+        [
+          {
+            "node": "Report to API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "staticData": null,
+  "meta": null,
+  "tags": [],
+  "active": false
+}

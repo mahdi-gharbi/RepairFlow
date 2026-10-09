@@ -8,6 +8,28 @@
   ],
   "workflows": [
     {
+      "file": "00_error_handler.json",
+      "id": "RFw00ErrorHndl1x",
+      "name": "RF 00 Error handler",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Error trigger",
+          "type": "n8n-nodes-base.errorTrigger",
+          "typeVersion": 1
+        },
+        {
+          "name": "Report to API",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        }
+      ],
+      "credentials_required": [
+        "httpHeaderAuth:RF Internal API"
+      ],
+      "webhooks": []
+    },
+    {
       "file": "01_intake.json",
       "id": "RFw01Intake00001",
       "name": "RF 01 Intake and enrichment",
@@ -173,6 +195,83 @@
           "path": "rf-dispatch-notification",
           "production_url_internal": "http://n8n:5678/webhook/rf-dispatch-notification",
           "production_url_host": "http://127.0.0.1:15678/webhook/rf-dispatch-notification"
+        }
+      ]
+    },
+    {
+      "file": "05_recovery.json",
+      "id": "RFw05Recovery001",
+      "name": "RF 05 Recovery sweep",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Every minute",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2
+        },
+        {
+          "name": "Recovery sweep",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        }
+      ],
+      "credentials_required": [
+        "httpHeaderAuth:RF Internal API"
+      ],
+      "webhooks": []
+    },
+    {
+      "file": "06_digest.json",
+      "id": "RFw06Digest00001",
+      "name": "RF 06 Daily digest",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Daily 07:00 UTC",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2
+        },
+        {
+          "name": "Run now webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2
+        },
+        {
+          "name": "Period key",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "name": "Reserve digest",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Not sent yet?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.2
+        },
+        {
+          "name": "Send digest",
+          "type": "n8n-nodes-base.emailSend",
+          "typeVersion": 2.1
+        },
+        {
+          "name": "Mark sent",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        }
+      ],
+      "credentials_required": [
+        "httpHeaderAuth:RF Dispatch Webhook Key",
+        "httpHeaderAuth:RF Internal API",
+        "smtp:RF Mailpit SMTP"
+      ],
+      "webhooks": [
+        {
+          "path": "rf-digest-run",
+          "production_url_internal": "http://n8n:5678/webhook/rf-digest-run",
+          "production_url_host": "http://127.0.0.1:15678/webhook/rf-digest-run"
         }
       ]
     }

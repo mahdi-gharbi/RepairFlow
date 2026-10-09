@@ -13,12 +13,9 @@ import time
 import uuid
 
 import httpx
-from sqlalchemy import select
 
-from app import dispatch, incidents
-from app.errors import DomainError
+from app import dispatch, recovery
 from app.db import session
-from app.models import Action
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("worker")
@@ -75,26 +72,13 @@ def offer_id(offer: dict) -> uuid.UUID:
 
 
 def reconcile_uncertain(ids=None) -> None:
-    if ids is None:
-        with session() as db:
-            ids = db.execute(select(Action.id).where(Action.status == "uncertain",
-                                                     Action.type.in_(dispatch.RECONCILABLE))).scalars().all()
-    for action_id in ids:
-        result = dispatch.reconcile(session, action_id, OWNER)
-        emit("reconciled", action_id=str(action_id), **{k: v for k, v in result.items() if k != "provider_reference"})
+    for result in recovery.reconcile_uncertain(OWNER, ids):
+        emit("reconciled", **result)
 
 
 def recover_stalled_intake() -> None:
-    """An intake workflow that died mid-way leaves the incident in received/enriching. The report is
-    kept; rules triage runs on what exists and flags the missing telemetry for the reviewer."""
-    with session() as db:
-        ids = incidents.stalled_enrichment(db, STALLED_INTAKE_S)
-    for incident_id in ids:
-        try:
-            run = incidents.triage(session, incident_id, OWNER, engine="rules")
-            emit("stalled_intake_recovered", incident_id=str(incident_id), triage_valid=run.valid)
-        except DomainError as exc:  # state changed concurrently
-            emit("stalled_intake_skipped", incident_id=str(incident_id), reason=exc.code)
+    for result in recovery.recover_stalled_intake(OWNER, STALLED_INTAKE_S):
+        emit("stalled_intake_recovered" if result["recovered"] else "stalled_intake_skipped", **result)
 
 
 def main() -> None:

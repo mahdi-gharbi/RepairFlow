@@ -8,12 +8,14 @@ from sqlalchemy import text
 from app.db import engine
 from app.errors import DomainError
 from app.routers import router
+from app.routers.ops import router as ops_router
 from app.transitions import TransitionError
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = FastAPI(title="RepairFlow API", version="0.1.0")
 app.include_router(router)
+app.include_router(ops_router)
 STATIC = pathlib.Path(__file__).parent / "static"
 
 

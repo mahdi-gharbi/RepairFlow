@@ -3,7 +3,7 @@
 The committed reference is the *export* produced by n8n after import (workflows/*.json, see
 scripts/provision_n8n.sh). Node typeVersions below were read from the installed n8n 2.42.6
 (n8n-nodes-base/dist/nodes/*): Webhook 2, HTTP Request 4.2, Code 2, If 2.2, Respond to Webhook 1.1,
-Send Email 2.1. Credentials are referenced by id/name only; their secrets never appear here.
+Send Email 2.1, Schedule Trigger 1.2, Error Trigger 1. Credentials are referenced by id/name only; their secrets never appear here.
 """
 import json
 import pathlib
@@ -34,18 +34,20 @@ def webhook(wf, name, path, cred, respond, pos):
                            "responseMode": respond, "options": {}}}
 
 
-def http(wf, name, method, url, pos, *, cred="internal", body=None, headers=None, timeout=10000, on_error=True):
+def http(wf, name, method, url, pos, *, cred="internal", body=None, headers=None, timeout=10000, on_error=True,
+         strict=False):
+    # strict=True: a non-2xx fails the node (and the execution, which then reaches the error workflow).
+    # Otherwise status codes are classified explicitly downstream; no implicit connector retries.
+    response = {} if strict else {"response": {"response": {"fullResponse": True, "neverError": True}}}
     params = {"method": method, "url": url, "authentication": "genericCredentialType",
-              "genericAuthType": "httpHeaderAuth",
-              # Status codes are classified explicitly downstream; no implicit connector retries.
-              "options": {"response": {"response": {"fullResponse": True, "neverError": True}}, "timeout": timeout}}
+              "genericAuthType": "httpHeaderAuth", "options": {**response, "timeout": timeout}}
     if body is not None:
         params.update(sendBody=True, specifyBody="json", jsonBody=body)
     if headers:
         params.update(sendHeaders=True, headerParameters={"parameters": [{"name": k, "value": v} for k, v in headers.items()]})
     node = {"id": nid(wf, name), "name": name, "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2,
             "position": pos, "parameters": params, "credentials": CRED[cred], "retryOnFail": False}
-    if on_error:
+    if on_error and not strict:
         node["onError"] = "continueRegularOutput"  # network errors become data for the classifier
     return node
 
@@ -80,11 +82,21 @@ def link(*pairs):
     return conns
 
 
+ERROR_WORKFLOW_ID = "RFw00ErrorHndl1x"
+
+
 def workflow(wid, name, nodes, connections):
+    settings = {"executionOrder": "v1", "saveDataSuccessExecution": "all", "saveDataErrorExecution": "all",
+                "saveManualExecutions": True, "callerPolicy": "workflowsFromSameOwner"}
+    if wid != ERROR_WORKFLOW_ID:
+        settings["errorWorkflow"] = ERROR_WORKFLOW_ID  # failed executions are reported to the API audit log
     return {"id": wid, "name": name, "nodes": nodes, "connections": connections, "active": False,
-            "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "all", "saveDataErrorExecution": "all",
-                         "saveManualExecutions": True, "callerPolicy": "workflowsFromSameOwner"},
-            "pinData": {}, "tags": []}
+            "settings": settings, "pinData": {}, "tags": []}
+
+
+def schedule(wf, name, rule, pos):
+    return {"id": nid(wf, name), "name": name, "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2,
+            "position": pos, "parameters": {"rule": {"interval": [rule]}}}
 
 
 # --- W1 intake / enrichment ---------------------------------------------------------------------
@@ -213,9 +225,63 @@ w4 = workflow("RFw04DispNotify1", "RF 04 Dispatch notification", [
         ("Send email", "Classify email result", 0), ("Classify email result", "Ack", 0)))
 
 
+# --- W0 error handler ---------------------------------------------------------------------------
+
+W0 = "00_error_handler"
+w0 = workflow(ERROR_WORKFLOW_ID, "RF 00 Error handler", [
+    {"id": nid(W0, "Error trigger"), "name": "Error trigger", "type": "n8n-nodes-base.errorTrigger", "typeVersion": 1,
+     "position": [0, 300], "parameters": {}},
+    http(W0, "Report to API", "POST", f"{API}/v1/ops/n8n-errors", [240, 300], strict=True, body=(
+        "={{ JSON.stringify({ workflow_id: $json.workflow.id, workflow_name: $json.workflow.name, "
+        "execution_id: String($json.execution.id ?? ''), mode: $json.execution.mode, "
+        "last_node: $json.execution.lastNodeExecuted, "
+        "message: String(($json.execution.error || {}).message || '').slice(0, 1000) }) }}")),
+], link(("Error trigger", "Report to API", 0)))
+
+# --- W5 recovery --------------------------------------------------------------------------------
+
+W5 = "05_recovery"
+w5 = workflow("RFw05Recovery001", "RF 05 Recovery sweep", [
+    schedule(W5, "Every minute", {"field": "minutes", "minutesInterval": 1}, [0, 300]),
+    http(W5, "Recovery sweep", "POST", f"{API}/v1/ops/recovery", [240, 300], strict=True, timeout=60000),
+], link(("Every minute", "Recovery sweep", 0)))
+
+# --- W6 daily digest ----------------------------------------------------------------------------
+
+W6 = "06_digest"
+PERIOD_JS = r"""
+// One digest per UTC day. A manual run may name the period (validated by the API).
+const j = $input.first().json;
+const requested = j.body && j.body.period_key;
+return [{ json: { period_key: requested || new Date().toISOString().slice(0, 10) } }];
+"""
+w6 = workflow("RFw06Digest00001", "RF 06 Daily digest", [
+    schedule(W6, "Daily 07:00 UTC", {"field": "cronExpression", "expression": "0 7 * * *"}, [0, 200]),
+    webhook(W6, "Run now webhook", "rf-digest-run", "dispatch", "onReceived", [0, 400]),
+    code(W6, "Period key", PERIOD_JS, [240, 300]),
+    http(W6, "Reserve digest", "POST", f"{API}/v1/ops/digests", [460, 300], strict=True,
+         body="={{ JSON.stringify({ period_key: $json.period_key }) }}"),
+    {"id": nid(W6, "Not sent yet?"), "name": "Not sent yet?", "type": "n8n-nodes-base.if", "typeVersion": 2.2,
+     "position": [680, 300], "parameters": {"conditions": {
+         "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "loose", "version": 2},
+         "conditions": [{"id": nid(W6, "send:c"), "leftValue": "={{ $json.send }}", "rightValue": "",
+                         "operator": {"type": "boolean", "operation": "true", "singleValue": True}}],
+         "combinator": "and"}, "options": {}}},
+    {"id": nid(W6, "Send digest"), "name": "Send digest", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1,
+     "position": [900, 200], "credentials": CRED["smtp"], "retryOnFail": False,
+     "parameters": {"fromEmail": "RepairFlow <repairflow@repairflow.local>", "toEmail": "={{ $json.to }}",
+                    "subject": "={{ $json.subject }}", "emailFormat": "text", "text": "={{ $json.text }}",
+                    "options": {"appendAttribution": False}}},
+    http(W6, "Mark sent", "POST", "=" + API + "/v1/ops/digests/{{ $('Reserve digest').first().json.period_key }}/sent",
+         [1120, 200], strict=True, body="={{ JSON.stringify({ message_id: $json.messageId }) }}"),
+], link(("Daily 07:00 UTC", "Period key", 0), ("Run now webhook", "Period key", 0), ("Period key", "Reserve digest", 0),
+        ("Reserve digest", "Not sent yet?", 0), ("Not sent yet?", "Send digest", 0), ("Send digest", "Mark sent", 0)))
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for fname, wf in (("01_intake.json", w1), ("03_dispatch_ticket.json", w3), ("04_dispatch_notification.json", w4)):
+    for fname, wf in (("00_error_handler.json", w0), ("01_intake.json", w1), ("03_dispatch_ticket.json", w3),
+                      ("04_dispatch_notification.json", w4), ("05_recovery.json", w5), ("06_digest.json", w6)):
         (OUT / fname).write_text(json.dumps(wf, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         print("wrote", OUT / fname)
 

@@ -1,0 +1,261 @@
+{
+  "id": "RFw06Digest00001",
+  "name": "RF 06 Daily digest",
+  "nodes": [
+    {
+      "id": "2e9ae279-63ed-5c02-9a57-411c77a357b7",
+      "name": "Daily 07:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "66867d8a-f0ca-58b4-8423-3935078330d9",
+      "name": "Run now webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "49350276-fc5f-5a9e-a26d-2be5da995496",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredDispatchK1",
+          "name": "RF Dispatch Webhook Key"
+        }
+      },
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rf-digest-run",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "12bbfd22-41b7-5f9b-8e6a-d4c6dcf95a15",
+      "name": "Period key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// One digest per UTC day. A manual run may name the period (validated by the API).\nconst j = $input.first().json;\nconst requested = j.body && j.body.period_key;\nreturn [{ json: { period_key: requested || new Date().toISOString().slice(0, 10) } }];"
+      }
+    },
+    {
+      "id": "da31a839-8e0b-5f35-aceb-0fee8baaa79d",
+      "name": "Reserve digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/v1/ops/digests",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ period_key: $json.period_key }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "e8d7cfdc-9d1e-5dfc-9aef-772f7c1dc113",
+      "name": "Not sent yet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2de94b4c-6ad9-5d54-b242-a358e266c259",
+              "leftValue": "={{ $json.send }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4a311308-43d2-5dc2-9e2c-66c2696e2ebe",
+      "name": "Send digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        200
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "rfCredMailpitSm1",
+          "name": "RF Mailpit SMTP"
+        }
+      },
+      "retryOnFail": false,
+      "parameters": {
+        "fromEmail": "RepairFlow <repairflow@repairflow.local>",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    },
+    {
+      "id": "22bdcb7c-c091-5a1d-b255-1f440f4797a1",
+      "name": "Mark sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/v1/ops/digests/{{ $('Reserve digest').first().json.period_key }}/sent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message_id: $json.messageId }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Daily 07:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Period key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now webhook": {
+      "main": [
+        [
+          {
+            "node": "Period key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Period key": {
+      "main": [
+        [
+          {
+            "node": "Reserve digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserve digest": {
+      "main": [
+        [
+          {
+            "node": "Not sent yet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not sent yet?": {
+      "main": [
+        [
+          {
+            "node": "Send digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send digest": {
+      "main": [
+        [
+          {
+            "node": "Mark sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "RFw00ErrorHndl1x"
+  },
+  "pinData": {},
+  "tags": []
+}

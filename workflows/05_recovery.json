@@ -1,0 +1,88 @@
+{
+  "id": "RFw05Recovery001",
+  "name": "RF 05 Recovery sweep",
+  "description": null,
+  "nodes": [
+    {
+      "id": "e178f87d-da86-5fe2-b2ca-71265ec26e8e",
+      "name": "Every minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "51ff9fc6-46c0-5e71-83dc-8a86b4312f00",
+      "name": "Recovery sweep",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/v1/ops/recovery",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Every minute": {
+      "main": [
+        [
+          {
+            "node": "Recovery sweep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "RFw00ErrorHndl1x"
+  },
+  "pinData": {},
+  "staticData": {
+    "node:Every minute": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": null,
+  "tags": [],
+  "active": false
+}

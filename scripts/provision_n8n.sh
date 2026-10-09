@@ -10,9 +10,12 @@ cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a
 
 WORKFLOWS=(
+  "00_error_handler.json:RFw00ErrorHndl1x"
   "01_intake.json:RFw01Intake00001"
   "03_dispatch_ticket.json:RFw03DispTicket1"
   "04_dispatch_notification.json:RFw04DispNotify1"
+  "05_recovery.json:RFw05Recovery001"
+  "06_digest.json:RFw06Digest00001"
 )
 
 wait_n8n() {
@@ -77,7 +80,8 @@ if [[ $FROM_SRC -eq 1 ]]; then
     docker compose exec -T n8n n8n export:workflow --id="$id" --pretty --output="/tmp/$file" >/dev/null
     docker compose cp "n8n:/tmp/$file" "workflows/$file"
   done
-  "$PY" scripts/normalize_exports.py "$(docker compose exec -T n8n n8n --version | tr -d '')"
+  "$PY" scripts/normalize_exports.py "$(docker compose exec -T n8n n8n --version | tr -d '
+')"
 fi
 
 # Published = active in the n8n database (what the running server registered at startup).

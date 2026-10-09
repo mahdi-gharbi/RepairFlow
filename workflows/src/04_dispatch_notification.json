@@ -235,7 +235,8 @@
     "saveDataSuccessExecution": "all",
     "saveDataErrorExecution": "all",
     "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "RFw00ErrorHndl1x"
   },
   "pinData": {},
   "tags": []
