@@ -47,7 +47,7 @@ worker ──POST /webhook/rf-dispatch-ticket (X-Dispatch-Key)──> n8n W3
 
 | Service | Host port |
 |---|---|
-| API + review page | 18000 (`/review`, `/docs`) |
+| API, dashboard, fallback review page | 18000 (`/app/`, `/review`, `/docs`) |
 | n8n editor + webhooks | 15678 |
 | Mailpit UI/API | 18025 |
 | ticket-service | 18081 |

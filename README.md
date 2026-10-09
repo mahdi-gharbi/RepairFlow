@@ -8,10 +8,11 @@ reconciliation when a provider fails or answers ambiguously.
 > The question it answers: *how do you automate repetitive work without losing control when a model is wrong or an
 > API goes down?*
 
-**Status (2026-10-09):** milestones M0–M3 done: real n8n workflows, outbox, reconciliation, fault-injection tests,
-manual retrieval (PostgreSQL full-text) and structured LLM proposals with a rules fallback. The LLM is a **remote**
-model (Groq, `openai/gpt-oss-20b`) by the owner's choice; switching to a local OpenAI-compatible server (Ollama) is a
-configuration change. The full dashboard and the Replay Lab are not built yet — see [`PROGRESS.md`](PROGRESS.md). All connectors are local: a fictional ticket service and Mailpit. Fleet, sites and
+**Status (2026-10-09):** milestones M0–M5 done: real n8n workflows (intake, dispatch, recovery, digest, error handler),
+outbox and reconciliation, fault-injection tests, manual retrieval (PostgreSQL full-text), structured LLM proposals with
+a rules fallback, a React dashboard with live updates, an Incident Replay Lab and a first evaluation campaign (draft
+labels, see below). The LLM is a **remote** model (Groq, `openai/gpt-oss-20b`) by the owner's choice; switching to a
+local OpenAI-compatible server (Ollama) is a configuration change. Details: [`PROGRESS.md`](PROGRESS.md). All connectors are local: a fictional ticket service and Mailpit. Fleet, sites and
 teams are fictional.
 
 ## What the demo shows
@@ -32,7 +33,10 @@ bash scripts/provision_n8n.sh
 python scripts/demo.py --outage
 ```
 
-Review page: <http://127.0.0.1:18000/review> (token `RF_REVIEWER_TOKEN` from `.env`) · Mailpit: <http://127.0.0.1:18025>
+Dashboard: <http://127.0.0.1:18000/app/> (token `RF_REVIEWER_TOKEN` or `RF_OPERATOR_TOKEN` from `.env`) · Mailpit: <http://127.0.0.1:18025>
+
+6. **Replay Lab**: re-run the incident in a sandbox under a fault or another rule ("what if the SMTP response was lost?")
+   and compare decisions side by side — without touching the real incident ([`docs/replay-lab.md`](docs/replay-lab.md)).
 
 ## Architecture
 
@@ -50,6 +54,7 @@ report ─> n8n W1 intake ─> FastAPI/PostgreSQL <── reviewer (approve revi
   expires leases and reconciles. Details: [`docs/architecture.md`](docs/architecture.md).
 * Guarantees differ per connector (idempotent ticket API vs SMTP): [`docs/reliability.md`](docs/reliability.md).
 * LLM configuration, observed runs and limits: [`docs/model-card.md`](docs/model-card.md).
+* Evaluation protocol, results and their limits (labels not yet human-reviewed): [`evaluation/README.md`](evaluation/README.md).
 * State machines: [`docs/state-machine.md`](docs/state-machine.md). n8n exports: [`workflows/`](workflows/) with
   [`manifest.json`](workflows/manifest.json) (n8n 2.42.6).
 
@@ -57,7 +62,8 @@ report ─> n8n W1 intake ─> FastAPI/PostgreSQL <── reviewer (approve revi
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -r services/api/requirements.txt pytest
-.venv/Scripts/python -m pytest -q tests        # unit + PostgreSQL integration + fault injection through n8n
+.venv/Scripts/python -m pytest -q tests        # 68 tests: unit, PostgreSQL integration, LLM contract, replay, n8n faults/ops
+cd apps/dashboard && npm ci && npx playwright install chromium && npx playwright test   # 3 end-to-end journeys
 ```
 
 Integration tests cover 20 concurrent identical intakes, concurrent double approval, stale approval after new
@@ -66,5 +72,5 @@ They establish properties of the tested scenarios and providers, not a universal
 
 ## Stack
 
-n8n Community 2.42.6 (self-hosted) · Groq API (OpenAI-compatible, strict JSON schema) · FastAPI · Pydantic · SQLAlchemy · Alembic · PostgreSQL 17 · Mailpit ·
-Docker Compose · pytest.
+n8n Community 2.42.6 (self-hosted) · Groq API (OpenAI-compatible, strict JSON schema) · React 18 + TypeScript (Vite) · FastAPI · Pydantic · SQLAlchemy · Alembic · PostgreSQL 17 · Mailpit ·
+Docker Compose · pytest · Playwright.

@@ -1,0 +1,26 @@
+{
+  "intake": {
+    "requests": 200,
+    "concurrency": 20,
+    "created": 200,
+    "errors": 0,
+    "wall_s": 22.41,
+    "incidents_per_s": 8.9,
+    "create_ms_p50": 667.1,
+    "create_ms_p95": 1081.4,
+    "create_evidence_triage_ms_p50": 2121.3,
+    "create_evidence_triage_ms_p95": 2929.0,
+    "payload_bytes": 256
+  },
+  "dispatch": {
+    "approved": 30,
+    "settled": 30,
+    "completed": 30,
+    "approval_to_settled_s_p50": 22.04,
+    "approval_to_settled_s_max": 25.32,
+    "incidents_per_min": 57.9,
+    "note": "each incident = 2 actions (ticket then email), each a separate n8n execution; worker tick 1 s"
+  },
+  "client": "Windows-10-10.0.19045-SP0",
+  "hardware": "i7-10510U (4C/8T), 20 GB RAM, Docker Desktop VM 10 GB, all services local"
+}

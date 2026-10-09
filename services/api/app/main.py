@@ -49,6 +49,15 @@ def root():
     return RedirectResponse("/app/")
 
 
+class DashboardFiles(StaticFiles):
+    """index.html must be revalidated so a redeploy is picked up; hashed assets never change."""
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        immutable = path.startswith("assets/")
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if immutable else "no-cache"
+        return response
+
+
 # React dashboard (built in the image). /review stays as the minimal fallback page.
 if (STATIC / "dashboard").is_dir():
-    app.mount("/app", StaticFiles(directory=STATIC / "dashboard", html=True), name="dashboard")
+    app.mount("/app", DashboardFiles(directory=STATIC / "dashboard", html=True), name="dashboard")

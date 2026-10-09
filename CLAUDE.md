@@ -37,7 +37,10 @@ python scripts/demo.py [--outage]
 
 ## Layout
 
-`services/api/app` (contracts, models, transitions, incidents, dispatch, policy, triage, routers, static/review.html),
+`services/api/app` (contracts, models, transitions, incidents, dispatch, recovery, replay, retrieval, policy, triage, routers),
+`apps/dashboard` (React+TS, built into the API image, served at `/app`; e2e in `apps/dashboard/e2e`), `evaluation/`,
 `services/worker/main.py`, `services/sim/app.py` (ticket-service + telemetry-sim, fault injection),
 `workflows/` (normalized n8n exports + manifest; `src/` = generator output), `data/equipment` (fictional fleet),
-`tests/{unit,integration,faults}`, `docs/{architecture,reliability,state-machine}.md`.
+`tests/{unit,integration,faults,workflow}`, `docs/{architecture,reliability,state-machine,model-card,replay-lab}.md`.
+
+Evaluation labels are drafts written by an AI assistant: never present evaluation numbers as gold-standard results.
