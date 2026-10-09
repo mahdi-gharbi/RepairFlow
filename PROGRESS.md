@@ -93,7 +93,7 @@ Portable i7-10510U, toute la pile dans Docker, 1 processus uvicorn, worker tick 
 
 ### 4.6 Reproductibilité
 
-Clone propre validé en M0/M1 (avant M4). À refaire après le passage du contexte de build à la racine (dashboard multi-étapes) — voir §6.
+Refait le 2026-10-09 ~22:15 UTC après M4/M5 : `git clone` → `.env` neuf **sans clé LLM** → `COMPOSE_PROJECT_NAME=rfclean docker compose up -d --build` (volumes vierges, build multi-étapes du dashboard) → `provision_n8n.sh` (6 workflows réimportés depuis les exports, actifs, scan de secrets propre) → `/app/` 200 → `demo.py` : rejeu 200, contradiction, 409 périmé, `completed`, 1 ticket, 1 email. Provenance `rules` : le système complet fonctionne sans LLM.
 
 ## 5. Décisions (détails courants)
 
@@ -109,10 +109,9 @@ Clone propre validé en M0/M1 (avant M4). À refaire après le passage du contex
 
 1. **Sécurité (porteur)** : révoquer la clé Groq collée dans la conversation et en créer une nouvelle.
 2. **Labels** : relire `evaluation/datasets/cases_v1.jsonl` (surtout « télémétrie périmée = contradiction ? »), compléter vers 60–100 cas avec des formulations écrites par quelqu'un d'autre, relancer `run_eval.py`.
-3. Refaire le test du clone propre avec le build multi-étapes (dashboard).
-4. Vidéo de démo 90–120 s (doublon → contradiction → revue versionnée → panne/reprise → timeline → replay).
-5. Qualité LLM : la sur-clarification et le `prepare_ticket` hors sujet sont des pistes de prompt/politique — à traiter sur le split dev seulement.
-6. M6 facultatif : recherche hybride pgvector (comparer à Recall@3/MRR actuels), OpenTelemetry.
+3. Vidéo de démo 90–120 s (doublon → contradiction → revue versionnée → panne/reprise → timeline → replay).
+4. Qualité LLM : la sur-clarification et le `prepare_ticket` hors sujet sont des pistes de prompt/politique — à traiter sur le split dev seulement.
+5. M6 facultatif : recherche hybride pgvector (comparer à Recall@3/MRR actuels), OpenTelemetry.
 
 ## 7. Scénarios à reproduire soi-même (préparation entretien)
 
