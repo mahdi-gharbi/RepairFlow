@@ -63,6 +63,13 @@ done
 # Webhooks of published workflows are registered by the running server at startup.
 docker compose restart n8n
 wait_n8n
+# /healthz answers before webhooks are registered: wait for 403 (registered, auth required) instead of 404.
+for _ in $(seq 1 60); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:15678/webhook/rf-intake || true)
+  [[ "$code" == "403" ]] && break
+  sleep 1
+done
+[[ "$code" == "403" ]] || { echo "intake webhook not registered (HTTP $code)" >&2; exit 1; }
 
 if [[ $FROM_SRC -eq 1 ]]; then
   for entry in "${WORKFLOWS[@]}"; do

@@ -1,0 +1,68 @@
+# RepairFlow — evidence-based maintenance automation
+
+RepairFlow turns an operator's message about a robot ("it stops after three minutes, the battery is full") into a
+maintenance case: equipment context, dated evidence, contradictions, missing information, a ticket proposal and a
+**versioned human approval** — then executes the approved actions through **n8n** with durable retries and
+reconciliation when a provider fails or answers ambiguously.
+
+> The question it answers: *how do you automate repetitive work without losing control when a model is wrong or an
+> API goes down?*
+
+**Status (2026-10-09):** milestones M0–M2 done (rule-based triage, real n8n workflows, outbox, reconciliation,
+fault-injection tests). The local LLM, document retrieval, full dashboard and Replay Lab are not built yet — see
+[`PROGRESS.md`](PROGRESS.md). All connectors are local: a fictional ticket service and Mailpit. Fleet, sites and
+teams are fictional.
+
+## What the demo shows
+
+1. A report arrives twice through the n8n intake webhook → one incident (idempotent on `event_id`).
+2. Telemetry says `battery_pct=12`: the proposal flags the **contradiction** instead of inventing a cause, citing both
+   evidence snapshots.
+3. The reviewer corrects the ticket title (new revision); approving the old page is refused (`409 stale_revision`).
+4. The ticket service fails twice (503): the worker retries with backoff; one ticket is created; then the team is
+   notified by email.
+5. A timeout *after* the ticket was created: the action becomes `uncertain`, is reconciled by idempotency key, and no
+   duplicate is created. An ambiguous SMTP result is **not** retried blindly.
+
+```bash
+python scripts/init_env.py
+docker compose up -d --build
+bash scripts/provision_n8n.sh
+python scripts/demo.py --outage
+```
+
+Review page: <http://127.0.0.1:18000/review> (token `RF_REVIEWER_TOKEN` from `.env`) · Mailpit: <http://127.0.0.1:18025>
+
+## Architecture
+
+```text
+report ─> n8n W1 intake ─> FastAPI/PostgreSQL <── reviewer (approve revision + plan digest)
+                                │ one transaction: approval + actions + outbox
+                                v
+                          worker (SKIP LOCKED, lease, fencing token)
+                                │ POST dispatch webhook ("received", not "done")
+                                v
+               n8n W3 ticket / W4 email: begin (CAS) → connector → ack
+```
+
+* **PostgreSQL** holds every decision and is the only clock. **n8n** runs connectors. **The worker** re-offers,
+  expires leases and reconciles. Details: [`docs/architecture.md`](docs/architecture.md).
+* Guarantees differ per connector (idempotent ticket API vs SMTP): [`docs/reliability.md`](docs/reliability.md).
+* State machines: [`docs/state-machine.md`](docs/state-machine.md). n8n exports: [`workflows/`](workflows/) with
+  [`manifest.json`](workflows/manifest.json) (n8n 2.42.6).
+
+## Tests
+
+```bash
+python -m venv .venv && .venv/Scripts/pip install -r services/api/requirements.txt pytest
+.venv/Scripts/python -m pytest -q tests        # unit + PostgreSQL integration + fault injection through n8n
+```
+
+Integration tests cover 20 concurrent identical intakes, concurrent double approval, stale approval after new
+evidence, stale callbacks after a new lease, lost acknowledgements, SMTP ambiguity and restarts of API/worker/n8n.
+They establish properties of the tested scenarios and providers, not a universal absence of duplicates.
+
+## Stack
+
+n8n Community 2.42.6 (self-hosted) · FastAPI · Pydantic · SQLAlchemy · Alembic · PostgreSQL 17 · Mailpit ·
+Docker Compose · pytest.
