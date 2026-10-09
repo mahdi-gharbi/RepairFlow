@@ -1,0 +1,17 @@
+{
+  "_note": "Fictional fleet for the demo. No real company, site or person.",
+  "teams": [
+    {"id": "maint-north", "name": "Maintenance North (fictional)", "notify_email": "maintenance-north@repairflow.local"},
+    {"id": "maint-south", "name": "Maintenance South (fictional)", "notify_email": "maintenance-south@repairflow.local"}
+  ],
+  "equipment": [
+    {"id": "robot-01", "model": "AMR-200", "display_name": "Picker Alpha", "site": "Warehouse A", "telemetry_source": "telemetry-sim", "team_id": "maint-north"},
+    {"id": "robot-02", "model": "AMR-200", "display_name": "Picker Bravo", "site": "Warehouse A", "telemetry_source": "telemetry-sim", "team_id": "maint-north"},
+    {"id": "robot-03", "model": "AMR-200", "display_name": "Picker Charlie", "site": "Warehouse A", "telemetry_source": "telemetry-sim", "team_id": "maint-north"},
+    {"id": "robot-04", "model": "AMR-300", "display_name": "Tugger Delta", "site": "Warehouse B", "telemetry_source": "telemetry-sim", "team_id": "maint-south"},
+    {"id": "robot-05", "model": "AMR-300", "display_name": "Tugger Echo", "site": "Warehouse B", "telemetry_source": "telemetry-sim", "team_id": "maint-south"},
+    {"id": "robot-06", "model": "ARM-6", "display_name": "Sorter Foxtrot", "site": "Warehouse B", "telemetry_source": "telemetry-sim", "team_id": "maint-south"},
+    {"id": "robot-07", "model": "AMR-200", "display_name": "Picker Golf", "site": "Warehouse A", "telemetry_source": "telemetry-sim", "team_id": "maint-north"},
+    {"id": "robot-08", "model": "ARM-6", "display_name": "Sorter Hotel", "site": "Warehouse A", "telemetry_source": "telemetry-sim", "team_id": "maint-north"}
+  ]
+}

@@ -1,0 +1,280 @@
+[
+  {
+    "updatedAt": "2026-10-09T15:07:20.357Z",
+    "createdAt": "2026-10-09T15:07:13.377Z",
+    "id": "RFw04DispNotify1",
+    "name": "RF 04 Dispatch notification",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "bf3d9b1c-000e-55e4-bcef-a0df2b4bf15e",
+        "name": "Dispatch webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          300
+        ],
+        "webhookId": "0ae3c354-cd4c-5353-b69c-9495a4f0851d",
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredDispatchK1",
+            "name": "RF Dispatch Webhook Key"
+          }
+        },
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "rf-dispatch-notification",
+          "authentication": "headerAuth",
+          "responseMode": "onReceived",
+          "options": {}
+        }
+      },
+      {
+        "id": "d08357fc-c837-5875-aff3-728723e59c64",
+        "name": "Begin",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "=http://api:8000/v1/actions/{{ $json.body.action_id }}/begin",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true
+              }
+            },
+            "timeout": 10000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ fencing_token: $json.body.fencing_token, dispatch_token: $json.body.dispatch_token }) }}"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredInternalK1",
+            "name": "RF Internal API"
+          }
+        },
+        "retryOnFail": false
+      },
+      {
+        "id": "7dca7471-e1b4-5b20-b89e-9378ec99941e",
+        "name": "Begin authorized?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "306fe364-71e7-5a04-a689-570695f16c57",
+                "leftValue": "={{ $json.statusCode }}",
+                "rightValue": 200,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "0bac01a7-ccf9-520c-9666-9328ef9001d0",
+        "name": "Send email",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          660,
+          200
+        ],
+        "credentials": {
+          "smtp": {
+            "id": "rfCredMailpitSm1",
+            "name": "RF Mailpit SMTP"
+          }
+        },
+        "onError": "continueRegularOutput",
+        "retryOnFail": false,
+        "parameters": {
+          "fromEmail": "RepairFlow <repairflow@repairflow.local>",
+          "toEmail": "={{ $json.body.args.to }}",
+          "subject": "={{ $json.body.args.subject }} [{{ $json.body.context.message_marker }}]",
+          "emailFormat": "text",
+          "text": "=A maintenance ticket was created after human approval.\n\nTicket: {{ $json.body.context.ticket_reference }}\nEquipment: {{ $json.body.args.equipment_id }}\nIncident: {{ $json.body.args.incident_id }}\nAction: {{ $json.body.action_id }} (attempt {{ $json.body.attempt }})\n",
+          "options": {
+            "appendAttribution": false
+          }
+        }
+      },
+      {
+        "id": "72fdaeae-a2ec-5569-a27a-281ba00576d7",
+        "name": "Classify email result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          880,
+          200
+        ],
+        "parameters": {
+          "jsCode": "// SMTP has no idempotency key. Connection refused = nothing sent (retryable); auth/recipient\n// rejection = permanent; anything else after the transaction may have started = ambiguous.\nconst hook = $('Dispatch webhook').first().json.body;\nconst r = $input.first().json;\nlet outcome, ref = null, detail = null;\nif (r.messageId && Array.isArray(r.accepted) && r.accepted.length > 0) { outcome = 'succeeded'; ref = r.messageId; }\nelse {\n  detail = (typeof r.error === 'string' ? r.error : JSON.stringify(r.error || r)).slice(0, 300);\n  if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN/.test(detail)) outcome = 'retryable';\n  else if (/EAUTH|Invalid login|EENVELOPE|\\b55[0-4]\\b/i.test(detail)) outcome = 'permanent';\n  else outcome = 'ambiguous';\n}\nreturn [{ json: { action_id: hook.action_id, ack: { fencing_token: hook.fencing_token, dispatch_token: hook.dispatch_token,\n  outcome, provider_reference: ref, http_status: null, retry_after_s: null, detail } } }];"
+        }
+      },
+      {
+        "id": "72619c01-75b7-54dc-8334-722efdba704a",
+        "name": "Ack",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1100,
+          200
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "=http://api:8000/v1/actions/{{ $json.action_id }}/ack",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true
+              }
+            },
+            "timeout": 10000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.ack) }}"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredInternalK1",
+            "name": "RF Internal API"
+          }
+        },
+        "retryOnFail": false,
+        "onError": "continueRegularOutput"
+      }
+    ],
+    "connections": {
+      "Dispatch webhook": {
+        "main": [
+          [
+            {
+              "node": "Begin",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Begin": {
+        "main": [
+          [
+            {
+              "node": "Begin authorized?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Begin authorized?": {
+        "main": [
+          [
+            {
+              "node": "Send email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send email": {
+        "main": [
+          [
+            {
+              "node": "Classify email result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Classify email result": {
+        "main": [
+          [
+            {
+              "node": "Ack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveDataSuccessExecution": "all",
+      "saveDataErrorExecution": "all",
+      "saveManualExecutions": true,
+      "callerPolicy": "workflowsFromSameOwner"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "8450693b-ce0e-4cbd-972e-eafb55bcaadb",
+    "activeVersionId": "8450693b-ce0e-4cbd-972e-eafb55bcaadb",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-10-09T15:07:13.377Z",
+        "createdAt": "2026-10-09T15:07:13.377Z",
+        "role": "workflow:owner",
+        "workflowId": "RFw04DispNotify1",
+        "projectId": "g0p4ohEuPZ5mBvj8",
+        "project": {
+          "updatedAt": "2026-10-09T15:06:22.231Z",
+          "createdAt": "2026-10-09T15:06:22.231Z",
+          "id": "g0p4ohEuPZ5mBvj8",
+          "name": "Unnamed Project",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "709b4eef-cc37-49fb-88c0-103dd0dd5708"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepairFlow Review</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#5b6470; --line:#dde1e6; --accent:#2457c5;
+          --warn:#a15c00; --warn-bg:#fff4e0; --bad:#b42318; --ok:#1a7f37; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1e24; --ink:#e6e9ee; --muted:#9aa4b1;
+          --line:#2c323a; --accent:#7aa2ff; --warn:#f0b34a; --warn-bg:#2d2414; --bad:#ff7b72; --ok:#56d364; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; gap:12px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--card); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; }
+  main { display:grid; grid-template-columns: 320px 1fr; gap:16px; padding:16px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+  h2 { font-size:14px; margin:0 0 8px; } h3 { font-size:13px; margin:12px 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+  .list button { display:block; width:100%; text-align:left; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:6px; padding:8px; margin-bottom:6px; cursor:pointer; }
+  .list button.sel { border-color:var(--accent); }
+  .pill { display:inline-block; padding:1px 7px; border-radius:10px; font-size:12px; border:1px solid var(--line); }
+  .s-needs_review,.s-uncertain,.s-blocked { color:var(--warn); border-color:var(--warn); }
+  .s-completed,.s-succeeded { color:var(--ok); border-color:var(--ok); }
+  .s-dead,.s-rejected,.s-cancelled { color:var(--bad); border-color:var(--bad); }
+  .warn { background:var(--warn-bg); border-left:3px solid var(--warn); padding:8px 10px; border-radius:4px; margin:6px 0; }
+  .muted { color:var(--muted); } code, .mono { font-family: ui-monospace, Consolas, monospace; font-size:12px; word-break:break-all; }
+  a.ref { color:var(--accent); cursor:pointer; text-decoration:underline; }
+  input, textarea, select { width:100%; font:inherit; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
+  textarea { min-height:90px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .btn { padding:6px 12px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; font:inherit; }
+  .btn.secondary { background:transparent; color:var(--accent); }
+  .btn.danger { border-color:var(--bad); background:var(--bad); }
+  table { width:100%; border-collapse:collapse; font-size:13px; } td, th { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; vertical-align:top; }
+  #msg { min-height:20px; } #msg.err { color:var(--bad); } #msg.ok { color:var(--ok); }
+  .tl { max-height:420px; overflow:auto; }
+  pre { white-space:pre-wrap; margin:0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RepairFlow — review</h1>
+  <label class="muted" for="token">Token</label>
+  <input id="token" type="password" style="max-width:280px" placeholder="reviewer or operator bearer token" autocomplete="off">
+  <button class="btn secondary" id="save">Use token</button>
+  <span id="msg"></span>
+</header>
+<main>
+  <section>
+    <div class="card"><h2>Incidents</h2>
+      <select id="filter"><option value="">all statuses</option><option>needs_review</option><option>approved</option>
+        <option>dispatching</option><option>blocked</option><option>completed</option><option>rejected</option></select>
+      <div class="list" id="list" style="margin-top:8px"></div>
+    </div>
+  </section>
+  <section id="detail"><div class="card muted">Select an incident.</div></section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+let token = ""; try { token = sessionStorage.getItem("rf_token") || ""; } catch (e) {}
+let current = null;
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pill = (s) => `<span class="pill s-${esc(s)}">${esc(s)}</span>`;
+function say(text, cls) { const m = $("#msg"); m.textContent = text; m.className = cls || ""; }
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" } });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || body.error || r.status), { status: r.status, body });
+  return body;
+}
+
+async function loadList() {
+  const st = $("#filter").value;
+  const rows = await api("/v1/incidents" + (st ? "?status=" + st : ""));
+  $("#list").innerHTML = rows.map((i) => `<button data-id="${i.id}" class="${current === i.id ? "sel" : ""}">
+    <b>${esc(i.equipment_id)}</b> ${pill(i.status)}<br><span class="muted mono">${i.id.slice(0, 8)} · rev ${i.revision}</span></button>`).join("") || '<span class="muted">none</span>';
+  document.querySelectorAll("#list button").forEach((b) => b.onclick = () => { current = b.dataset.id; loadDetail(); loadList(); });
+}
+
+function refs(list) { return list.map((r) => `<a class="ref" data-ref="${esc(r)}">${esc(r)}</a>`).join(", "); }
+
+async function loadDetail() {
+  if (!current) return;
+  const [d, tl] = await Promise.all([api("/v1/incidents/" + current), api("/v1/incidents/" + current + "/timeline")]);
+  const rv = d.review, p = rv.proposal, ov = d.revision_data.overrides || {};
+  const canReview = d.status === "needs_review";
+  let h = `<div class="card"><h2>${esc(d.equipment.display_name)} (${esc(d.equipment_id)}, ${esc(d.equipment.model)}) ${pill(d.status)}</h2>
+    <div class="muted mono">incident ${d.id} · revision ${d.revision} · correlation ${d.correlation_id}</div>
+    <h3>Operator report</h3><pre>${esc(d.revision_data.description)}</pre>
+    <div class="muted">reported ${esc(d.revision_data.reported_at)} · language ${esc(d.revision_data.language)}</div>
+    <h3>Evidence</h3><table><tr><th>id</th><th>kind</th><th>source / version</th><th>observed</th><th>content</th></tr>
+    ${d.evidence.map((e) => `<tr id="ev-${esc(e.id)}"><td class="mono">${esc(e.id)}</td><td>${esc(e.kind)}</td><td class="mono">${esc(e.source_id)}<br>${esc(e.source_version)}</td>
+      <td class="mono">${esc(e.observed_at)}</td><td class="mono">${esc(JSON.stringify(e.content.values || e.content.description || e.content))}</td></tr>`).join("")}</table></div>`;
+  if (p) {
+    h += `<div class="card"><h2>Proposal <span class="pill">provenance: ${esc(rv.provenance)}</span> <span class="pill">next: ${esc(p.suggested_next_step)}</span></h2>
+      <div>${esc(p.summary)}</div>
+      ${p.contradictions.map((c) => `<div class="warn"><b>Contradiction</b>: ${esc(c.claim_a)} ↔ ${esc(c.claim_b)} [${refs(c.evidence_refs)}]</div>`).join("")}
+      ${p.missing_information.map((m) => `<div class="warn"><b>Missing</b>: ${esc(m)}</div>`).join("")}
+      <h3>Facts</h3><ul>${p.extracted_facts.map((f) => `<li>${esc(f.claim)} [${refs(f.evidence_refs)}]</li>`).join("")}</ul>
+      <h3>Plan to approve (policy ${esc(rv.policy_version)})</h3>
+      <table>${rv.plan.map((a) => `<tr><td><b>${esc(a.type)}</b></td><td class="mono">${esc(JSON.stringify(a.args))}</td></tr>`).join("")}</table>
+      <div class="muted mono">plan_digest ${esc(rv.plan_digest)}</div>`;
+    if (canReview) {
+      h += `<h3>Correct (creates a new revision; the plan must then be re-approved)</h3>
+        <select id="c-cat"><option value="">category: keep ${esc(ov.category || p.category)}</option>
+          ${["battery","network","mechanical","sensor","other"].map((c) => `<option>${c}</option>`).join("")}</select>
+        <input id="c-title" style="margin-top:6px" value="${esc(ov.ticket_title || p.draft_ticket.title)}">
+        <textarea id="c-desc" style="margin-top:6px">${esc(ov.ticket_description || p.draft_ticket.description)}</textarea>
+        <input id="c-note" style="margin-top:6px" placeholder="correction note (required)">
+        <div class="row"><button class="btn secondary" id="b-correct">Save correction</button>
+          <button class="btn" id="b-approve">Approve revision ${d.revision}</button>
+          <button class="btn danger" id="b-reject">Reject</button></div>`;
+    }
+    h += `</div>`;
+  } else {
+    h += `<div class="card warn">No valid proposal for revision ${d.revision}. ${canReview ? '<button class="btn secondary" id="b-triage">Run rules triage</button>' : ""}</div>`;
+  }
+  h += `<div class="card"><h2>Actions</h2><table><tr><th>type</th><th>status</th><th>attempts</th><th>provider ref</th><th>last error</th><th></th></tr>
+    ${d.actions.map((a) => `<tr><td>${esc(a.type)}</td><td>${pill(a.status)}</td><td>${a.attempts} (offers ${a.offers}, fence ${a.fencing_token})</td>
+      <td class="mono">${esc(a.provider_reference)}</td><td class="mono">${esc(a.last_error ? JSON.stringify(a.last_error) : "")}</td>
+      <td>${["uncertain","dead"].includes(a.status) ? `<button class="btn secondary" data-rec="${a.id}">Reconcile</button>
+        <button class="btn secondary" data-res="${a.id}" data-dec="retry">Retry</button>
+        <button class="btn secondary" data-res="${a.id}" data-dec="mark_succeeded">Mark sent</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">none</td></tr>'}</table>
+    ${d.actions.some((a) => a.type === "notify_team" && a.status === "uncertain") ? '<div class="warn">An email outcome is unknown. SMTP gives no idempotency: retrying may send a duplicate. Check Mailpit or reconcile first.</div>' : ""}</div>`;
+  h += `<div class="card"><h2>Timeline</h2><div class="tl"><table>${tl.map((t) => `<tr><td class="mono">${esc(t.at.slice(11, 23))}</td><td><b>${esc(t.event)}</b><br><span class="muted">${esc(t.actor)}</span></td>
+    <td>${t.from || t.to ? esc(t.from || "") + " → " + esc(t.to || "") : ""}</td><td class="mono">${esc(JSON.stringify(t.payload))}</td></tr>`).join("")}</table></div></div>`;
+  $("#detail").innerHTML = h;
+
+  document.querySelectorAll("a.ref").forEach((a) => a.onclick = () => { const el = document.getElementById("ev-" + a.dataset.ref); if (el) { el.scrollIntoView({ block: "center" }); el.style.outline = "2px solid var(--accent)"; } });
+  const act = async (fn, okText) => { try { await fn(); say(okText, "ok"); } catch (e) { say(`${e.status || ""} ${e.body?.error || ""}: ${e.message}`, "err"); } await loadDetail(); await loadList(); };
+  $("#b-triage") && ($("#b-triage").onclick = () => act(() => api(`/v1/incidents/${d.id}/triage`, { method: "POST" }), "triage done"));
+  $("#b-approve") && ($("#b-approve").onclick = () => act(() => api(`/v1/incidents/${d.id}/approve`, { method: "POST",
+    body: JSON.stringify({ expected_revision: d.revision, plan_digest: rv.plan_digest }) }), "approved"));
+  $("#b-reject") && ($("#b-reject").onclick = () => act(() => api(`/v1/incidents/${d.id}/reject`, { method: "POST",
+    body: JSON.stringify({ expected_revision: d.revision, reason: $("#c-note").value || "rejected by reviewer" }) }), "rejected"));
+  $("#b-correct") && ($("#b-correct").onclick = () => act(() => api(`/v1/incidents/${d.id}/corrections`, { method: "POST",
+    body: JSON.stringify({ expected_revision: d.revision, note: $("#c-note").value || "edited", category: $("#c-cat").value || null,
+      ticket_title: $("#c-title").value, ticket_description: $("#c-desc").value }) }), "correction saved: new revision"));
+  document.querySelectorAll("[data-rec]").forEach((b) => b.onclick = () => act(async () => say(JSON.stringify(await api(`/v1/actions/${b.dataset.rec}/reconcile`, { method: "POST" }))), "reconciled"));
+  document.querySelectorAll("[data-res]").forEach((b) => b.onclick = () => act(() => {
+    const ref = b.dataset.dec === "mark_succeeded" ? prompt("Provider reference observed (e.g. Mailpit message id)") : null;
+    return api(`/v1/actions/${b.dataset.res}/resolve`, { method: "POST", body: JSON.stringify({ decision: b.dataset.dec, provider_reference: ref, note: "decision from review page" }) });
+  }, "decision recorded"));
+}
+
+$("#token").value = token;
+$("#save").onclick = () => { token = $("#token").value.trim(); try { sessionStorage.setItem("rf_token", token); } catch (e) {} refresh(); };
+$("#filter").onchange = () => loadList();
+async function refresh() { if (!token) return say("enter a token"); try { await loadList(); await loadDetail(); say(""); } catch (e) { say(`${e.status}: ${e.message}`, "err"); } }
+refresh();
+setInterval(() => { if (token && document.visibilityState === "visible" && !document.activeElement?.matches("input,textarea,select")) refresh(); }, 4000);
+</script>
+</body>
+</html>

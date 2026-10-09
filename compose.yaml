@@ -1,0 +1,116 @@
+name: repairflow
+
+# All host ports bind to 127.0.0.1 only. Image tags are pinned (see docs/versions in PROGRESS.md).
+x-python-env: &python-env
+  RF_DATABASE_URL: postgresql+psycopg://repairflow:${RF_DB_PASSWORD}@postgres:5432/repairflow
+  RF_INTERNAL_KEY: ${RF_INTERNAL_KEY}
+  RF_OPERATOR_TOKEN: ${RF_OPERATOR_TOKEN}
+  RF_REVIEWER_TOKEN: ${RF_REVIEWER_TOKEN}
+  RF_TICKET_SERVICE_URL: http://ticket-service:8000
+  TICKET_API_KEY: ${TICKET_API_KEY}
+  RF_MAILPIT_URL: http://mailpit:8025
+  RF_DATA_DIR: /data
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RF_DB_PASSWORD: ${RF_DB_PASSWORD}
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD}
+      TICKETS_DB_PASSWORD: ${TICKETS_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    ports: ["127.0.0.1:15432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: { context: ./services, dockerfile: api/Dockerfile }
+    image: repairflow-api:dev
+    environment: *python-env
+    volumes: ["./data:/data:ro"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ["127.0.0.1:18000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    image: repairflow-api:dev
+    command: ["python", "/srv/worker/main.py"]
+    environment:
+      <<: *python-env
+      RF_N8N_URL: http://n8n:5678
+      RF_DISPATCH_KEY: ${RF_DISPATCH_KEY}
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  ticket-service:
+    build: ./services/sim
+    image: repairflow-sim:dev
+    environment:
+      SIM_ROLE: tickets
+      TICKETS_DATABASE_URL: postgresql://tickets:${TICKETS_DB_PASSWORD}@postgres:5432/tickets
+      TICKET_API_KEY: ${TICKET_API_KEY}
+      SIM_FAULTS_ENABLED: "true"
+      SIM_FAULTS_KEY: ${SIM_FAULTS_KEY}
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ["127.0.0.1:18081:8000"]
+
+  telemetry-sim:
+    image: repairflow-sim:dev
+    environment:
+      SIM_ROLE: telemetry
+      RF_DATA_DIR: /data
+      SIM_FAULTS_ENABLED: "true"
+      SIM_FAULTS_KEY: ${SIM_FAULTS_KEY}
+    volumes: ["./data:/data:ro"]
+    depends_on: [ticket-service]
+    ports: ["127.0.0.1:18082:8000"]
+
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    ports: ["127.0.0.1:18025:8025"]
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.42.6
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      WEBHOOK_URL: http://localhost:15678/
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: UTC
+      TZ: UTC
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+    volumes:
+      - n8ndata:/home/node/.n8n
+      - ./workflows:/workflows:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ["127.0.0.1:15678:5678"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  n8ndata:

@@ -1,0 +1,11 @@
+{
+  "_note": "Simulated telemetry. observed_offset_s is relative to the request time, so the demo stays reproducible.",
+  "robot-01": {"observed_offset_s": -60, "values": {"battery_pct": 81, "network_online": true, "error_code": null, "uptime_s": 18230}},
+  "robot-02": {"observed_offset_s": -45, "values": {"battery_pct": 64, "network_online": true, "error_code": "E-MOT-12", "uptime_s": 920}},
+  "robot-03": {"observed_offset_s": -7200, "values": {"battery_pct": 90, "network_online": true, "error_code": null, "uptime_s": 400}},
+  "robot-04": {"observed_offset_s": -30, "values": {"battery_pct": 55, "network_online": true, "error_code": null, "uptime_s": 70211}},
+  "robot-05": {"observed_offset_s": -20, "values": {"battery_pct": 72, "network_online": false, "error_code": "E-NET-03", "uptime_s": 3600}},
+  "robot-06": {"observed_offset_s": -90, "values": {"battery_pct": 100, "network_online": true, "error_code": "E-SNS-07", "uptime_s": 5100}},
+  "robot-07": {"observed_offset_s": -120, "values": {"battery_pct": 12, "network_online": true, "error_code": "E-PWR-02", "uptime_s": 185}},
+  "robot-08": {"observed_offset_s": -15, "values": {"battery_pct": 97, "network_online": true, "error_code": null, "uptime_s": 12}}
+}

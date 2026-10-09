@@ -1,0 +1,343 @@
+{
+  "id": "RFw01Intake00001",
+  "name": "RF 01 Intake and enrichment",
+  "nodes": [
+    {
+      "id": "6a46ebef-3b90-584d-9ab8-08eed9bd6620",
+      "name": "Intake webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "5a44e410-3e6e-5c71-a194-e270160e227d",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredIntakeKey1",
+          "name": "RF Intake Webhook Key"
+        }
+      },
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rf-intake",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "ab68443e-e303-572d-b4ce-ed5a72d2d2c4",
+      "name": "Create incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/v1/incidents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_scope: 'n8n-intake-webhook', report: $json.body }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "7f289bcf-d66b-5280-a823-5103c68ad188",
+      "name": "New incident?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9d225676-d904-5577-aa2c-b5e7f9ff3239",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 201,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d565b678-2d67-5dda-bbf7-085dc63a345d",
+      "name": "Respond replay or rejection",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    },
+    {
+      "id": "58e4c177-cd7c-5f1b-8c0d-4d71ee1cb86c",
+      "name": "Fetch telemetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://telemetry-sim:8000/telemetry/{{ encodeURIComponent($('Create incident').first().json.body.equipment_id) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 5000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "0c8d209b-87e5-5a21-82f4-8c3633a78659",
+      "name": "Build telemetry evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// Telemetry is optional evidence: an unavailable source is recorded, never invented.\nconst r = $input.first().json;\nif (r.statusCode === 200 && r.body && r.body.observed_at) {\n  return [{ json: { source_id: 'telemetry-sim', available: true, observed_at: r.body.observed_at, values: r.body.values || {} } }];\n}\nconst reason = r.statusCode ? `HTTP ${r.statusCode}` : JSON.stringify(r.error || r).slice(0, 200);\nreturn [{ json: { source_id: 'telemetry-sim', available: false, values: {}, error: reason } }];"
+      }
+    },
+    {
+      "id": "8002ee8b-9664-5e46-9fb2-6712dc2b1707",
+      "name": "Record telemetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/telemetry",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "16c52133-7225-5eb5-99c1-f88537f5f080",
+      "name": "Run triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredInternalK1",
+          "name": "RF Internal API"
+        }
+      },
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "cedb3191-e48e-58b9-a5c5-49e71a3a2a58",
+      "name": "Respond created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ incident_id: $('Create incident').first().json.body.incident_id, correlation_id: $('Create incident').first().json.body.correlation_id, replayed: false, telemetry_available: $('Build telemetry evidence').first().json.available, triage_http_status: $json.statusCode, triage: $json.body }) }}",
+        "options": {
+          "responseCode": 201
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Intake webhook": {
+      "main": [
+        [
+          {
+            "node": "Create incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create incident": {
+      "main": [
+        [
+          {
+            "node": "New incident?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New incident?": {
+      "main": [
+        [
+          {
+            "node": "Fetch telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond replay or rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch telemetry": {
+      "main": [
+        [
+          {
+            "node": "Build telemetry evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build telemetry evidence": {
+      "main": [
+        [
+          {
+            "node": "Record telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record telemetry": {
+      "main": [
+        [
+          {
+            "node": "Run triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run triage": {
+      "main": [
+        [
+          {
+            "node": "Respond created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "tags": []
+}

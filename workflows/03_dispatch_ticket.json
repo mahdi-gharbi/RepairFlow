@@ -1,0 +1,297 @@
+[
+  {
+    "updatedAt": "2026-10-09T15:07:06.270Z",
+    "createdAt": "2026-10-09T15:06:58.968Z",
+    "id": "RFw03DispTicket1",
+    "name": "RF 03 Dispatch ticket",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "c0402ca6-b84b-53d4-96ed-3e624396770c",
+        "name": "Dispatch webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          300
+        ],
+        "webhookId": "1c20b539-5aa4-5014-b5fc-71a25d93cedf",
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredDispatchK1",
+            "name": "RF Dispatch Webhook Key"
+          }
+        },
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "rf-dispatch-ticket",
+          "authentication": "headerAuth",
+          "responseMode": "onReceived",
+          "options": {}
+        }
+      },
+      {
+        "id": "b85da803-628b-5701-b698-92054f8d833b",
+        "name": "Begin",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "=http://api:8000/v1/actions/{{ $json.body.action_id }}/begin",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true
+              }
+            },
+            "timeout": 10000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ fencing_token: $json.body.fencing_token, dispatch_token: $json.body.dispatch_token }) }}"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredInternalK1",
+            "name": "RF Internal API"
+          }
+        },
+        "retryOnFail": false
+      },
+      {
+        "id": "a02397fb-186c-5452-86c1-e9a3dc8f0047",
+        "name": "Begin authorized?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "16069ad3-1058-5ed9-9b84-10f46fb5f2f4",
+                "leftValue": "={{ $json.statusCode }}",
+                "rightValue": 200,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "993602fb-0a76-5b29-859c-3e698ad8cf1d",
+        "name": "Create ticket",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          660,
+          200
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://ticket-service:8000/tickets",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true
+              }
+            },
+            "timeout": 10000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ title: $json.body.args.title, description: $json.body.args.description, priority: $json.body.args.priority, equipment_id: $json.body.args.equipment_id, site: $json.body.args.site, category: $json.body.args.category, external_reference: $json.body.args.incident_id }) }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Idempotency-Key",
+                "value": "={{ $json.body.action_key }}"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredTicketKey1",
+            "name": "RF Ticket API"
+          }
+        },
+        "retryOnFail": false,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "a963f225-3fe2-5ae3-b7fe-7a7e2dbff005",
+        "name": "Classify ticket result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          880,
+          200
+        ],
+        "parameters": {
+          "jsCode": "// Ticket-service contract: 503/429 = rejected before processing (no effect); 409 = key reused\n// with another payload; other 5xx or timeout = effect unknown (reconciled by key, never assumed).\nconst hook = $('Dispatch webhook').first().json.body;\nconst r = $input.first().json;\nconst s = r.statusCode;\nlet outcome, ref = null, retryAfter = null, detail = null;\nif (s === 200 || s === 201) { outcome = 'succeeded'; ref = r.body.ticket_id; }\nelse if (s === 429) {\n  outcome = 'rate_limited';\n  const ra = Number((r.headers || {})['retry-after']);\n  retryAfter = Number.isFinite(ra) ? ra : null;\n}\nelse if (s === 503) { outcome = 'retryable'; }\nelse if (s >= 400 && s < 500) { outcome = 'permanent'; }\nelse if (s) { outcome = 'ambiguous'; }\nelse {\n  detail = JSON.stringify(r.error || r).slice(0, 300);\n  outcome = /ECONNREFUSED|ENOTFOUND|EAI_AGAIN/.test(detail) ? 'retryable' : 'ambiguous';\n}\nif (!detail && outcome !== 'succeeded') detail = JSON.stringify(r.body ?? null).slice(0, 300);\nreturn [{ json: { action_id: hook.action_id, ack: { fencing_token: hook.fencing_token, dispatch_token: hook.dispatch_token,\n  outcome, provider_reference: ref, http_status: s || null, retry_after_s: retryAfter, detail } } }];"
+        }
+      },
+      {
+        "id": "8b923096-7df0-5241-b11c-309606840895",
+        "name": "Ack",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1100,
+          200
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "=http://api:8000/v1/actions/{{ $json.action_id }}/ack",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true
+              }
+            },
+            "timeout": 10000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.ack) }}"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "rfCredInternalK1",
+            "name": "RF Internal API"
+          }
+        },
+        "retryOnFail": false,
+        "onError": "continueRegularOutput"
+      }
+    ],
+    "connections": {
+      "Dispatch webhook": {
+        "main": [
+          [
+            {
+              "node": "Begin",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Begin": {
+        "main": [
+          [
+            {
+              "node": "Begin authorized?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Begin authorized?": {
+        "main": [
+          [
+            {
+              "node": "Create ticket",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create ticket": {
+        "main": [
+          [
+            {
+              "node": "Classify ticket result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Classify ticket result": {
+        "main": [
+          [
+            {
+              "node": "Ack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveDataSuccessExecution": "all",
+      "saveDataErrorExecution": "all",
+      "saveManualExecutions": true,
+      "callerPolicy": "workflowsFromSameOwner"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "85c83cea-8a9b-48b4-9447-1750ed713197",
+    "activeVersionId": "85c83cea-8a9b-48b4-9447-1750ed713197",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-10-09T15:06:58.968Z",
+        "createdAt": "2026-10-09T15:06:58.968Z",
+        "role": "workflow:owner",
+        "workflowId": "RFw03DispTicket1",
+        "projectId": "g0p4ohEuPZ5mBvj8",
+        "project": {
+          "updatedAt": "2026-10-09T15:06:22.231Z",
+          "createdAt": "2026-10-09T15:06:22.231Z",
+          "id": "g0p4ohEuPZ5mBvj8",
+          "name": "Unnamed Project",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "709b4eef-cc37-49fb-88c0-103dd0dd5708"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]
