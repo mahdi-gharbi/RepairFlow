@@ -15,7 +15,8 @@ import uuid
 import httpx
 from sqlalchemy import select
 
-from app import dispatch
+from app import dispatch, incidents
+from app.errors import DomainError
 from app.db import session
 from app.models import Action
 
@@ -31,6 +32,7 @@ WEBHOOKS = {
 DISPATCH_KEY = os.environ["RF_DISPATCH_KEY"]
 TICK_S = float(os.environ.get("RF_WORKER_TICK_S", "1.0"))
 RECONCILE_EVERY_S = float(os.environ.get("RF_RECONCILE_EVERY_S", "10"))
+STALLED_INTAKE_S = int(os.environ.get("RF_STALLED_INTAKE_S", "120"))
 
 running = True
 
@@ -82,6 +84,20 @@ def reconcile_uncertain(ids=None) -> None:
         emit("reconciled", action_id=str(action_id), **{k: v for k, v in result.items() if k != "provider_reference"})
 
 
+def recover_stalled_intake() -> None:
+    """An intake workflow that died mid-way leaves the incident in received/enriching. The report is
+    kept; rules triage runs on what exists and flags the missing telemetry for the reviewer."""
+    with session() as db:
+        ids = incidents.stalled_enrichment(db, STALLED_INTAKE_S)
+    for incident_id in ids:
+        with session() as db:
+            try:
+                run = incidents.triage(db, incident_id, OWNER)
+                emit("stalled_intake_recovered", incident_id=str(incident_id), triage_valid=run.valid)
+            except DomainError as exc:  # state changed concurrently
+                emit("stalled_intake_skipped", incident_id=str(incident_id), reason=exc.code)
+
+
 def main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
@@ -96,6 +112,7 @@ def main() -> None:
                     reconcile_uncertain(expired)
                 if time.monotonic() - last_reconcile > RECONCILE_EVERY_S:
                     reconcile_uncertain()
+                    recover_stalled_intake()
                     last_reconcile = time.monotonic()
                 with session() as db:
                     offers = dispatch.claim(db, OWNER)

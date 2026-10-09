@@ -233,6 +233,13 @@ def _run_rules(db: Session, incident: Incident, actor: str) -> TriageRun:
     return run
 
 
+def stalled_enrichment(db: Session, older_than_s: int) -> list[uuid.UUID]:
+    """Incidents whose intake workflow died before triage (n8n crash, API restart mid-flow)."""
+    return db.execute(select(Incident.id).where(
+        Incident.status.in_(("received", "enriching")),
+        Incident.updated_at < text(f"now() - interval '{int(older_than_s)} seconds'"))).scalars().all()
+
+
 def triage(db: Session, incident_id: uuid.UUID, actor: str) -> TriageRun:
     incident = lock_incident(db, incident_id)
     if incident.status not in ("received", "enriching", "needs_review"):

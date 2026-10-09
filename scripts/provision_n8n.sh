@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Provision n8n from a clean state: credentials (from .env, never committed), workflows, publication.
-# Then export what n8n actually stored to workflows/*.json and check that no secret leaked into it.
-# Usage: bash scripts/provision_n8n.sh   (from the repository root, stack started with docker compose)
+# Provision n8n: credentials (from .env, never committed), workflows, publication, restart.
+#   bash scripts/provision_n8n.sh             import the committed exports workflows/*.json (default)
+#   bash scripts/provision_n8n.sh --from-src  regenerate from scripts/build_workflows.py, import, then
+#                                             export what n8n stored back to workflows/*.json
+# Always ends with a secret scan of workflows/.
 set -euo pipefail
 export MSYS_NO_PATHCONV=1  # Git Bash on Windows: do not rewrite /tmp/... container paths
 cd "$(dirname "$0")/.."
@@ -21,8 +23,9 @@ wait_n8n() {
   echo "n8n did not become healthy" >&2; exit 1
 }
 
+FROM_SRC=0; [[ "${1:-}" == "--from-src" ]] && FROM_SRC=1
 PY=python; command -v "$PY" >/dev/null || PY=python3
-"$PY" scripts/build_workflows.py
+if [[ $FROM_SRC -eq 1 ]]; then "$PY" scripts/build_workflows.py; SRC_DIR=/workflows/src; else SRC_DIR=/workflows; fi
 
 docker compose up -d n8n
 wait_n8n
@@ -53,7 +56,7 @@ rm -f "$CREDS"
 
 for entry in "${WORKFLOWS[@]}"; do
   file="${entry%%:*}"; id="${entry##*:}"
-  docker compose exec -T n8n n8n import:workflow --input="/workflows/src/$file"
+  docker compose exec -T n8n n8n import:workflow --input="$SRC_DIR/$file"
   docker compose exec -T n8n n8n publish:workflow --id="$id"
 done
 
@@ -61,11 +64,17 @@ done
 docker compose restart n8n
 wait_n8n
 
-for entry in "${WORKFLOWS[@]}"; do
-  file="${entry%%:*}"; id="${entry##*:}"
-  docker compose exec -T n8n n8n export:workflow --id="$id" --pretty --output="/tmp/$file" >/dev/null
-  docker compose cp "n8n:/tmp/$file" "workflows/$file"
-done
+if [[ $FROM_SRC -eq 1 ]]; then
+  for entry in "${WORKFLOWS[@]}"; do
+    file="${entry%%:*}"; id="${entry##*:}"
+    docker compose exec -T n8n n8n export:workflow --id="$id" --pretty --output="/tmp/$file" >/dev/null
+    docker compose cp "n8n:/tmp/$file" "workflows/$file"
+  done
+  "$PY" scripts/normalize_exports.py "$(docker compose exec -T n8n n8n --version | tr -d '')"
+fi
+
+# Published = active in the n8n database (what the running server registered at startup).
+docker compose exec -T postgres psql -U postgres -d n8n -tAc   "select id || ' active=' || active from workflow_entity where id like 'RFw%' order by id"
 
 # Secret scan: no value from .env may appear in an exported workflow.
 leak=0
@@ -74,5 +83,5 @@ while IFS='=' read -r key value; do
   if grep -rqF -- "$value" workflows/; then echo "SECRET LEAK: $key found in workflows/" >&2; leak=1; fi
 done < .env
 [[ $leak -eq 0 ]] || exit 1
-echo "provisioned and exported: ${WORKFLOWS[*]}"
+echo "provisioned: ${WORKFLOWS[*]} (from_src=$FROM_SRC)"
 echo "secret scan: no .env value found in workflows/"

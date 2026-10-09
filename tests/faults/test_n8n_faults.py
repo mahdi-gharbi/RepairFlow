@@ -3,10 +3,12 @@
 Nothing here calls begin/ack directly: outcomes are produced by the imported n8n workflows.
 """
 import pytest
+from sqlalchemy import text
 
+from app.db import session
 from helpers import (
-    TELEMETRY, TICKETS, action, approve, clear_faults, compose, incident, inject, intake_n8n, mails_with, ready_incident,
-    report, tickets_for_incident, timeline, wait_for,
+    TELEMETRY, TICKETS, action, approve, clear_faults, compose, incident, inject, intake_api, intake_n8n, mails_with,
+    ready_incident, report, tickets_for_incident, timeline, wait_for,
 )
 
 
@@ -119,3 +121,24 @@ def test_stale_telemetry_is_flagged():
     assert r.status_code == 201, r.text
     p = incident(r.json()["incident_id"])["review"]["proposal"]
     assert any("stale" in m for m in p["missing_information"])
+
+
+def test_pending_actions_survive_api_worker_and_n8n_restarts():
+    compose("stop", "worker")
+    iid = ready_incident()
+    assert approve(iid).status_code == 200            # committed to PostgreSQL, nobody dispatching
+    compose("restart", "api", "n8n")
+    compose("start", "worker")
+    d = final(iid, timeout=180)
+    assert d["status"] == "completed"
+    assert len(tickets_for_incident(iid)) == 1
+
+
+def test_intake_interrupted_before_triage_is_recovered_by_worker():
+    r = intake_api(report(equipment="robot-01", description="Robot arm vibrates strongly when lifting."))
+    iid = r.json()["incident_id"]                    # incident stored; no telemetry, no triage
+    with session() as db:  # simulate time passing since the interrupted intake
+        db.execute(text("UPDATE incidents SET updated_at = now() - interval '10 minutes' WHERE id = :i"), {"i": iid})
+        db.commit()
+    d = wait_for(lambda: incident(iid)["status"] == "needs_review" and incident(iid), 60, 1, "worker recovery")
+    assert any("No telemetry" in m for m in d["review"]["proposal"]["missing_information"])

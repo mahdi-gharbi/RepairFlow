@@ -1,0 +1,175 @@
+{
+  "n8n_version": "2.42.6",
+  "image": "docker.n8n.io/n8nio/n8n:2.42.6",
+  "import": "bash scripts/provision_n8n.sh  (imports these files, publishes them, restarts n8n)",
+  "notes": [
+    "Production webhook URLs require the workflow to be published; test URLs (/webhook-test/) are not used.",
+    "Credentials are created by the provisioning script from .env; only their names/ids appear here."
+  ],
+  "workflows": [
+    {
+      "file": "01_intake.json",
+      "id": "RFw01Intake00001",
+      "name": "RF 01 Intake and enrichment",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Intake webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2
+        },
+        {
+          "name": "Create incident",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "New incident?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.2
+        },
+        {
+          "name": "Respond replay or rejection",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.1
+        },
+        {
+          "name": "Fetch telemetry",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Build telemetry evidence",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "name": "Record telemetry",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Run triage",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Respond created",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.1
+        }
+      ],
+      "credentials_required": [
+        "httpHeaderAuth:RF Intake Webhook Key",
+        "httpHeaderAuth:RF Internal API"
+      ],
+      "webhooks": [
+        {
+          "path": "rf-intake",
+          "production_url_internal": "http://n8n:5678/webhook/rf-intake",
+          "production_url_host": "http://127.0.0.1:15678/webhook/rf-intake"
+        }
+      ]
+    },
+    {
+      "file": "03_dispatch_ticket.json",
+      "id": "RFw03DispTicket1",
+      "name": "RF 03 Dispatch ticket",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Dispatch webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2
+        },
+        {
+          "name": "Begin",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Begin authorized?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.2
+        },
+        {
+          "name": "Create ticket",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Classify ticket result",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "name": "Ack",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        }
+      ],
+      "credentials_required": [
+        "httpHeaderAuth:RF Dispatch Webhook Key",
+        "httpHeaderAuth:RF Internal API",
+        "httpHeaderAuth:RF Ticket API"
+      ],
+      "webhooks": [
+        {
+          "path": "rf-dispatch-ticket",
+          "production_url_internal": "http://n8n:5678/webhook/rf-dispatch-ticket",
+          "production_url_host": "http://127.0.0.1:15678/webhook/rf-dispatch-ticket"
+        }
+      ]
+    },
+    {
+      "file": "04_dispatch_notification.json",
+      "id": "RFw04DispNotify1",
+      "name": "RF 04 Dispatch notification",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Dispatch webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2
+        },
+        {
+          "name": "Begin",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        },
+        {
+          "name": "Begin authorized?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.2
+        },
+        {
+          "name": "Send email",
+          "type": "n8n-nodes-base.emailSend",
+          "typeVersion": 2.1
+        },
+        {
+          "name": "Classify email result",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "name": "Ack",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        }
+      ],
+      "credentials_required": [
+        "httpHeaderAuth:RF Dispatch Webhook Key",
+        "httpHeaderAuth:RF Internal API",
+        "smtp:RF Mailpit SMTP"
+      ],
+      "webhooks": [
+        {
+          "path": "rf-dispatch-notification",
+          "production_url_internal": "http://n8n:5678/webhook/rf-dispatch-notification",
+          "production_url_host": "http://127.0.0.1:15678/webhook/rf-dispatch-notification"
+        }
+      ]
+    }
+  ]
+}

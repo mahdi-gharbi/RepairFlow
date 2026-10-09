@@ -214,7 +214,7 @@ w4 = workflow("RFw04DispNotify1", "RF 04 Dispatch notification", [
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for fname, wf in (("01_intake.json", w1), ("03_dispatch_ticket.json", w3), ("04_dispatch_notification.json", w4)):
-        (OUT / fname).write_text(json.dumps(wf, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        (OUT / fname).write_text(json.dumps(wf, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         print("wrote", OUT / fname)
 
 
