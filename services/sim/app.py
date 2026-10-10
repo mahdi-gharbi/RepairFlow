@@ -12,6 +12,7 @@ Fault injection (/_faults) exists only when SIM_FAULTS_ENABLED=true and is never
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import secrets
@@ -28,6 +29,8 @@ FAULTS_KEY = os.environ.get("SIM_FAULTS_KEY", "")
 DATA = pathlib.Path(os.environ.get("RF_DATA_DIR", "/data"))
 
 app = FastAPI(title=f"RepairFlow simulator ({ROLE})")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+log = logging.getLogger("sim")
 _faults: list[dict] = []
 _lock = threading.Lock()
 
@@ -129,7 +132,8 @@ if ROLE == "tickets":
 
     @app.post("/tickets")
     async def create_ticket(ticket: TicketIn, response: Response, x_api_key: str | None = Header(default=None),
-                            idempotency_key: str | None = Header(default=None)):
+                            idempotency_key: str | None = Header(default=None),
+                            x_correlation_id: str | None = Header(default=None)):
         _check(x_api_key, API_KEY)
         if not idempotency_key or len(idempotency_key) > 200:
             raise HTTPException(400, "Idempotency-Key header required")
@@ -145,6 +149,9 @@ if ROLE == "tickets":
         response.status_code = status
         if status == 200:
             response.headers["Idempotent-Replayed"] = "true"
+        log.info(json.dumps({"component": "ticket-service", "event": "ticket_request", "status": status,
+                             "ticket_id": body.get("ticket_id"), "idempotency_key": idempotency_key,
+                             "correlation_id": x_correlation_id}))
         return body
 
     @app.get("/tickets/by-key/{key}")

@@ -35,6 +35,10 @@ def step(text):
     print(f"\n== {text}")
 
 
+# Model text can contain any character; Windows consoles/pipes default to cp1252.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main():
     outage = "--outage" in sys.argv
     event = {"event_id": f"evt-demo-{uuid.uuid4().hex[:8]}", "equipment_id": "robot-07",

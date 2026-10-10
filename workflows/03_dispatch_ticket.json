@@ -52,7 +52,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ fencing_token: $json.body.fencing_token, dispatch_token: $json.body.dispatch_token }) }}"
+        "jsonBody": "={{ JSON.stringify({ fencing_token: $json.body.fencing_token, dispatch_token: $json.body.dispatch_token }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Dispatch webhook').first().json.body.correlation_id }}"
+            }
+          ]
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
@@ -127,6 +136,10 @@
             {
               "name": "Idempotency-Key",
               "value": "={{ $json.body.action_key }}"
+            },
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Dispatch webhook').first().json.body.correlation_id }}"
             }
           ]
         }
@@ -178,7 +191,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.ack) }}"
+        "jsonBody": "={{ JSON.stringify($json.ack) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Dispatch webhook').first().json.body.correlation_id }}"
+            }
+          ]
+        }
       },
       "credentials": {
         "httpHeaderAuth": {

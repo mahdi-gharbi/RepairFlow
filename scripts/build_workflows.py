@@ -101,6 +101,10 @@ def schedule(wf, name, rule, pos):
 
 # --- W1 intake / enrichment ---------------------------------------------------------------------
 
+# Correlation id propagated as a header on every downstream call (logged by the API and the ticket service).
+CORR_W1 = {"X-Correlation-Id": "={{ $('Create incident').first().json.body.correlation_id }}"}
+CORR_DISPATCH = {"X-Correlation-Id": "={{ $('Dispatch webhook').first().json.body.correlation_id }}"}
+
 W1 = "01_intake"
 TELEMETRY_EVIDENCE_JS = r"""
 // Telemetry is optional evidence: an unavailable source is recorded, never invented.
@@ -119,15 +123,15 @@ w1 = workflow("RFw01Intake00001", "RF 01 Intake and enrichment", [
     respond(W1, "Respond replay or rejection", "={{ $json.statusCode }}", "={{ JSON.stringify($json.body) }}", [660, 480]),
     http(W1, "Fetch telemetry", "GET",
          "=http://telemetry-sim:8000/telemetry/{{ encodeURIComponent($('Create incident').first().json.body.equipment_id) }}",
-         [660, 200], timeout=5000),
+         [660, 200], timeout=5000, headers=CORR_W1),
     code(W1, "Build telemetry evidence", TELEMETRY_EVIDENCE_JS, [880, 200]),
     http(W1, "Record telemetry", "POST",
          "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/telemetry",
-         [1100, 200], body="={{ JSON.stringify($json) }}"),
+         [1100, 200], body="={{ JSON.stringify($json) }}", headers=CORR_W1),
     http(W1, "Retrieve manuals", "POST",
-         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/manuals", [1210, 200]),
+         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/evidence/manuals", [1210, 200], headers=CORR_W1),
     http(W1, "Run triage", "POST",
-         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage", [1430, 200], timeout=90000),
+         "=" + API + "/v1/incidents/{{ $('Create incident').first().json.body.incident_id }}/triage", [1430, 200], timeout=90000, headers=CORR_W1),
     respond(W1, "Respond created", 201,
             "={{ JSON.stringify({ incident_id: $('Create incident').first().json.body.incident_id, "
             "correlation_id: $('Create incident').first().json.body.correlation_id, replayed: false, "
@@ -171,13 +175,14 @@ TICKET_BODY = ("={{ JSON.stringify({ title: $json.body.args.title, description: 
                "category: $json.body.args.category, external_reference: $json.body.args.incident_id }) }}")
 w3 = workflow("RFw03DispTicket1", "RF 03 Dispatch ticket", [
     webhook(W3, "Dispatch webhook", "rf-dispatch-ticket", "dispatch", "onReceived", [0, 300]),
-    http(W3, "Begin", "POST", "=" + API + "/v1/actions/{{ $json.body.action_id }}/begin", [220, 300], body=BEGIN_BODY, on_error=False),
+    http(W3, "Begin", "POST", "=" + API + "/v1/actions/{{ $json.body.action_id }}/begin", [220, 300], body=BEGIN_BODY,
+         on_error=False, headers=CORR_DISPATCH),
     if_status(W3, "Begin authorized?", "={{ $json.statusCode }}", 200, [440, 300]),
     http(W3, "Create ticket", "POST", "http://ticket-service:8000/tickets", [660, 200], cred="ticket", body=TICKET_BODY,
-         headers={"Idempotency-Key": "={{ $json.body.action_key }}"}, timeout=10000),
+         headers={"Idempotency-Key": "={{ $json.body.action_key }}", **CORR_DISPATCH}, timeout=10000),
     code(W3, "Classify ticket result", CLASSIFY_TICKET_JS, [880, 200]),
     http(W3, "Ack", "POST", "=" + API + "/v1/actions/{{ $json.action_id }}/ack", [1100, 200],
-         body="={{ JSON.stringify($json.ack) }}"),
+         body="={{ JSON.stringify($json.ack) }}", headers=CORR_DISPATCH),
 ], link(("Dispatch webhook", "Begin", 0), ("Begin", "Begin authorized?", 0), ("Begin authorized?", "Create ticket", 0),
         ("Create ticket", "Classify ticket result", 0), ("Classify ticket result", "Ack", 0)))
 
@@ -202,7 +207,8 @@ return [{ json: { action_id: hook.action_id, ack: { fencing_token: hook.fencing_
 """
 w4 = workflow("RFw04DispNotify1", "RF 04 Dispatch notification", [
     webhook(W4, "Dispatch webhook", "rf-dispatch-notification", "dispatch", "onReceived", [0, 300]),
-    http(W4, "Begin", "POST", "=" + API + "/v1/actions/{{ $json.body.action_id }}/begin", [220, 300], body=BEGIN_BODY, on_error=False),
+    http(W4, "Begin", "POST", "=" + API + "/v1/actions/{{ $json.body.action_id }}/begin", [220, 300], body=BEGIN_BODY,
+         on_error=False, headers=CORR_DISPATCH),
     if_status(W4, "Begin authorized?", "={{ $json.statusCode }}", 200, [440, 300]),
     {"id": nid(W4, "Send email"), "name": "Send email", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1,
      "position": [660, 200], "credentials": CRED["smtp"], "onError": "continueRegularOutput", "retryOnFail": False,
@@ -220,7 +226,7 @@ w4 = workflow("RFw04DispNotify1", "RF 04 Dispatch notification", [
          "options": {"appendAttribution": False}}},
     code(W4, "Classify email result", CLASSIFY_EMAIL_JS, [880, 200]),
     http(W4, "Ack", "POST", "=" + API + "/v1/actions/{{ $json.action_id }}/ack", [1100, 200],
-         body="={{ JSON.stringify($json.ack) }}"),
+         body="={{ JSON.stringify($json.ack) }}", headers=CORR_DISPATCH),
 ], link(("Dispatch webhook", "Begin", 0), ("Begin", "Begin authorized?", 0), ("Begin authorized?", "Send email", 0),
         ("Send email", "Classify email result", 0), ("Classify email result", "Ack", 0)))
 

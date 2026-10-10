@@ -12,6 +12,7 @@ import json
 import pathlib
 import platform
 import statistics
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -55,6 +56,10 @@ def one_intake(n: int, tag: str):
         _, _, t2, _ = call("POST", f"/v1/incidents/{iid}/evidence/telemetry", tel, INTERNAL)
         _, _, t3, _ = call("POST", f"/v1/incidents/{iid}/triage?engine=rules", None, INTERNAL)
     return s, iid, dt, dt + t2 + t3, size
+
+
+# Model text can contain any character; Windows consoles/pipes default to cp1252.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def main():

@@ -1,5 +1,7 @@
+import json
 import logging
 import pathlib
+import time
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
@@ -20,6 +22,20 @@ app.include_router(router)
 app.include_router(ops_router)
 app.include_router(replays_router)
 STATIC = pathlib.Path(__file__).parent / "static"
+access_log = logging.getLogger("repairflow.access")
+
+
+@app.middleware("http")
+async def json_access_log(request: Request, call_next):
+    """One JSON line per API call with the caller's correlation id. Bodies (report text) are never logged."""
+    started = time.perf_counter()
+    response = await call_next(request)
+    if request.url.path.startswith("/v1/") and request.url.path != "/v1/events":
+        access_log.info(json.dumps({
+            "component": "api", "method": request.method, "path": request.url.path, "status": response.status_code,
+            "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+            "correlation_id": request.headers.get("x-correlation-id")}))
+    return response
 
 
 @app.exception_handler(DomainError)

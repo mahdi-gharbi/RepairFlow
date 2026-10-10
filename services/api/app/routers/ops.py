@@ -14,10 +14,13 @@ from sqlalchemy.orm import Session
 
 from app import audit, recovery
 from app.auth import Principal, principal, require
+from app.config import get_settings
 from app.contracts import Strict
 from app.db import get_db, session
 from app.errors import Conflict, NotFound
 from app.models import Action, AuditEvent, Digest, Incident
+from app.policy import POLICY_VERSION
+from app.triage import llm, rules
 
 router = APIRouter(prefix="/v1")
 OPS_EMAIL = os.environ.get("RF_OPS_EMAIL", "ops@repairflow.local")  # config, never from content
@@ -221,3 +224,49 @@ async def events(request: Request, after: int | None = Query(default=None, ge=0)
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# --- diagnostics export -------------------------------------------------------------------------
+
+SAFE_PAYLOAD_KEYS = ("outcome", "http_status", "attempt", "fencing_token", "engine", "model", "reason", "finding",
+                     "retry_in_s", "revision", "provenance", "type", "decision", "scenario", "mode", "workflow_name",
+                     "last_node", "period_key")
+FAILURE_EVENTS = ("triage_failed", "llm_fallback_to_rules", "action_outcome_unknown", "action_dead_permanent",
+                  "action_dead_max_attempts", "execution_lease_expired", "dispatch_not_received", "n8n_execution_failed",
+                  "begin_rejected_stale_token", "ack_rejected_stale_token", "approval_superseded_after_start",
+                  "reconciliation_inconclusive", "intake_conflict")
+
+
+@router.get("/ops/diagnostics")
+def diagnostics(p: Principal = Depends(principal), db: Session = Depends(get_db)):
+    """Shareable diagnostic bundle. Allow-list only: versions, counts, metrics, recent event ids and
+    transitions. Never report text, evidence content, prompts, model output or secrets."""
+    require(p, "reviewer")
+    s = get_settings()
+    recent = db.execute(select(AuditEvent).order_by(AuditEvent.id.desc()).limit(200)).scalars().all()
+    failures = db.execute(select(AuditEvent).where(AuditEvent.event.in_(FAILURE_EVENTS))
+                          .order_by(AuditEvent.id.desc()).limit(50)).scalars().all()
+
+    def event(e: AuditEvent, with_payload: bool) -> dict:
+        out = {"id": e.id, "at": e.created_at.isoformat(), "event": e.event, "actor": e.actor.split(":")[0],
+               "incident_id": str(e.incident_id) if e.incident_id else None,
+               "action_id": str(e.action_id) if e.action_id else None, "from": e.from_state, "to": e.to_state}
+        if with_payload:
+            out["payload"] = {k: (str(v)[:200] if isinstance(v, str) else v) for k, v in (e.payload or {}).items()
+                              if k in SAFE_PAYLOAD_KEYS}
+            if e.payload and e.payload.get("errors"):
+                out["payload"]["error_kinds"] = sorted({str(x).split(":")[0][:60] for x in e.payload["errors"]})
+        return out
+
+    return {
+        "generated_at": db.execute(text("SELECT now()")).scalar_one().isoformat(),
+        "versions": {
+            "schema": db.execute(text("SELECT version_num FROM alembic_version")).scalar_one(),
+            "policy": POLICY_VERSION, "rules": rules.RULES_VERSION, "prompt": llm.PROMPT_VERSION,
+            "llm": {"configured": llm.enabled(), "model": s.llm_model or None,
+                    "provider_host": s.llm_base_url.split("/")[2] if "://" in s.llm_base_url else None},
+        },
+        "metrics": metrics(db),
+        "recent_events": [event(e, False) for e in recent],
+        "recent_failures": [event(e, True) for e in failures],
+    }

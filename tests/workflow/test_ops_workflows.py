@@ -1,6 +1,7 @@
 """Imported n8n operations workflows (W0 error handler, W5 recovery, W6 digest) and the SSE stream."""
 import json
 import random
+import subprocess
 import threading
 import time
 
@@ -8,8 +9,8 @@ import httpx
 from sqlalchemy import text
 
 from app.db import session
-from conftest import ENV
-from helpers import API, MAILPIT, N8N, REVIEWER, ready_incident, wait_for
+from conftest import ENV, ROOT
+from helpers import API, MAILPIT, N8N, OPERATOR, REVIEWER, approve, incident, intake_api, ready_incident, report, wait_for
 
 DISPATCH = {"X-Dispatch-Key": ENV.get("RF_DISPATCH_KEY", "")}
 
@@ -89,3 +90,25 @@ def test_sse_requires_a_user_token():
 def test_metrics_separate_human_review_time_from_dispatch_time():
     m = httpx.get(f"{API}/v1/metrics", headers=REVIEWER, timeout=10).json()
     assert {"review_time_median_s", "dispatch_time_median_s", "eligible_backlog", "uncertain_actions"} <= set(m)
+
+
+def test_diagnostics_bundle_is_allow_listed():
+    marker = f"diagnostic-marker-{random.randint(10**6, 10**7)}"
+    iid = intake_api(report(description=f"Robot stops, {marker} in the report text.")).json()["incident_id"]
+    assert httpx.get(f"{API}/v1/ops/diagnostics", headers=OPERATOR, timeout=10).status_code == 403
+    d = httpx.get(f"{API}/v1/ops/diagnostics", headers=REVIEWER, timeout=30)
+    assert d.status_code == 200
+    body = d.text
+    assert iid in body and marker not in body                      # ids yes, report text never
+    assert not [k for k, v in ENV.items() if v and len(v) >= 8 and v in body]
+    assert {"schema", "policy", "rules", "prompt", "llm"} <= set(d.json()["versions"])
+
+
+def test_correlation_id_reaches_the_ticket_service():
+    iid = ready_incident()
+    cid = incident(iid)["correlation_id"]
+    assert approve(iid).status_code == 200
+    wait_for(lambda: incident(iid)["status"] == "completed", 60, 1, "dispatch completed")
+    logs = subprocess.run(["docker", "compose", "logs", "ticket-service", "--since", "3m"], capture_output=True,
+                          text=True, cwd=ROOT).stdout
+    assert any(cid in line and '"ticket_request"' in line for line in logs.splitlines())

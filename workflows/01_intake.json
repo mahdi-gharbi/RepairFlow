@@ -134,6 +134,15 @@
             }
           },
           "timeout": 5000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Create incident').first().json.body.correlation_id }}"
+            }
+          ]
         }
       },
       "credentials": {
@@ -183,7 +192,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}"
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Create incident').first().json.body.correlation_id }}"
+            }
+          ]
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
@@ -216,6 +234,15 @@
             }
           },
           "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Create incident').first().json.body.correlation_id }}"
+            }
+          ]
         }
       },
       "credentials": {
@@ -249,6 +276,15 @@
             }
           },
           "timeout": 90000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Correlation-Id",
+              "value": "={{ $('Create incident').first().json.body.correlation_id }}"
+            }
+          ]
         }
       },
       "credentials": {

@@ -156,6 +156,10 @@ def retry_unreachable(run_dir: pathlib.Path) -> None:
     report.main(run_dir)
 
 
+# Model text can contain any character; Windows consoles/pipes default to cp1252.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", default=str(ROOT / "evaluation/datasets/cases_v1.jsonl"))

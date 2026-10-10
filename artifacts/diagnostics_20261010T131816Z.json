@@ -1,0 +1,2883 @@
+{
+  "generated_at": "2026-10-10T13:18:14.927451+00:00",
+  "versions": {
+    "schema": "0004",
+    "policy": "policy-2026.10-1",
+    "rules": "rules-2026.10-2",
+    "prompt": "triage-llm-2026.10-1",
+    "llm": {
+      "configured": true,
+      "model": "openai/gpt-oss-20b",
+      "provider_host": "api.groq.com"
+    }
+  },
+  "metrics": {
+    "incidents_by_status": {
+      "needs_review": 162,
+      "rejected": 342,
+      "completed": 135,
+      "blocked": 18
+    },
+    "actions_by_status": {
+      "uncertain": 6,
+      "succeeded": 282,
+      "pending": 6,
+      "dead": 12,
+      "cancelled": 32
+    },
+    "eligible_backlog": 0,
+    "oldest_eligible_age_s": null,
+    "uncertain_actions": 6,
+    "dead_actions": 12,
+    "triage_runs_24h": [
+      {
+        "engine": "llm",
+        "valid": false,
+        "count": 56
+      },
+      {
+        "engine": "llm",
+        "valid": true,
+        "count": 76
+      },
+      {
+        "engine": "retrieval_llm",
+        "valid": false,
+        "count": 10
+      },
+      {
+        "engine": "retrieval_llm",
+        "valid": true,
+        "count": 69
+      },
+      {
+        "engine": "rules",
+        "valid": true,
+        "count": 652
+      }
+    ],
+    "review_time_median_s": 1.1,
+    "dispatch_time_median_s": 22.25,
+    "dispatch_time_p95_s": 109.06
+  },
+  "recent_events": [
+    {
+      "id": 7526,
+      "at": "2026-10-10T13:17:18.363144+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7525,
+      "at": "2026-10-10T13:16:18.305246+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7524,
+      "at": "2026-10-10T13:15:52.480185+00:00",
+      "event": "incident_completed",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": "dispatching",
+      "to": "completed"
+    },
+    {
+      "id": 7523,
+      "at": "2026-10-10T13:15:52.480185+00:00",
+      "event": "action_succeeded",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "70d6f9a6-8d17-4c6b-85e3-fd87a7d8137b",
+      "from": "executing",
+      "to": "succeeded"
+    },
+    {
+      "id": 7522,
+      "at": "2026-10-10T13:15:52.337060+00:00",
+      "event": "action_begin",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "70d6f9a6-8d17-4c6b-85e3-fd87a7d8137b",
+      "from": "offered",
+      "to": "executing"
+    },
+    {
+      "id": 7521,
+      "at": "2026-10-10T13:15:52.168523+00:00",
+      "event": "action_offered",
+      "actor": "worker",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "70d6f9a6-8d17-4c6b-85e3-fd87a7d8137b",
+      "from": "pending",
+      "to": "offered"
+    },
+    {
+      "id": 7520,
+      "at": "2026-10-10T13:15:51.338068+00:00",
+      "event": "action_released",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "70d6f9a6-8d17-4c6b-85e3-fd87a7d8137b",
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7519,
+      "at": "2026-10-10T13:15:51.338068+00:00",
+      "event": "action_succeeded",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "9eefbb6d-2818-4527-936a-221b21c5130d",
+      "from": "executing",
+      "to": "succeeded"
+    },
+    {
+      "id": 7518,
+      "at": "2026-10-10T13:15:51.256866+00:00",
+      "event": "dispatch_started",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": "approved",
+      "to": "dispatching"
+    },
+    {
+      "id": 7517,
+      "at": "2026-10-10T13:15:51.256866+00:00",
+      "event": "action_begin",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "9eefbb6d-2818-4527-936a-221b21c5130d",
+      "from": "offered",
+      "to": "executing"
+    },
+    {
+      "id": 7516,
+      "at": "2026-10-10T13:15:51.012614+00:00",
+      "event": "action_offered",
+      "actor": "worker",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "9eefbb6d-2818-4527-936a-221b21c5130d",
+      "from": "pending",
+      "to": "offered"
+    },
+    {
+      "id": 7515,
+      "at": "2026-10-10T13:15:50.853489+00:00",
+      "event": "incident_approved",
+      "actor": "reviewer-demo",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": "needs_review",
+      "to": "approved"
+    },
+    {
+      "id": 7514,
+      "at": "2026-10-10T13:15:50.853489+00:00",
+      "event": "action_planned",
+      "actor": "reviewer-demo",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "70d6f9a6-8d17-4c6b-85e3-fd87a7d8137b",
+      "from": null,
+      "to": "pending"
+    },
+    {
+      "id": 7513,
+      "at": "2026-10-10T13:15:50.853489+00:00",
+      "event": "action_planned",
+      "actor": "reviewer-demo",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": "9eefbb6d-2818-4527-936a-221b21c5130d",
+      "from": null,
+      "to": "pending"
+    },
+    {
+      "id": 7512,
+      "at": "2026-10-10T13:15:50.771593+00:00",
+      "event": "triage_completed",
+      "actor": "reviewer-demo",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7511,
+      "at": "2026-10-10T13:15:49.708535+00:00",
+      "event": "correction_applied",
+      "actor": "reviewer-demo",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": "needs_review",
+      "to": "needs_review"
+    },
+    {
+      "id": 7510,
+      "at": "2026-10-10T13:15:49.708535+00:00",
+      "event": "revision_created",
+      "actor": "reviewer-demo",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7509,
+      "at": "2026-10-10T13:15:49.646554+00:00",
+      "event": "intake_replayed",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7508,
+      "at": "2026-10-10T13:15:49.359941+00:00",
+      "event": "ready_for_review",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": "enriching",
+      "to": "needs_review"
+    },
+    {
+      "id": 7507,
+      "at": "2026-10-10T13:15:49.359941+00:00",
+      "event": "triage_completed",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7506,
+      "at": "2026-10-10T13:15:48.558207+00:00",
+      "event": "evidence_added",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7505,
+      "at": "2026-10-10T13:15:48.558207+00:00",
+      "event": "revision_created",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7504,
+      "at": "2026-10-10T13:15:48.528936+00:00",
+      "event": "enrichment_started",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": "received",
+      "to": "enriching"
+    },
+    {
+      "id": 7503,
+      "at": "2026-10-10T13:15:48.528936+00:00",
+      "event": "evidence_added",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7502,
+      "at": "2026-10-10T13:15:48.528936+00:00",
+      "event": "revision_created",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7501,
+      "at": "2026-10-10T13:15:48.463060+00:00",
+      "event": "incident_received",
+      "actor": "n8n",
+      "incident_id": "49e6ac00-e128-4db0-8d45-d8bda331a2a8",
+      "action_id": null,
+      "from": null,
+      "to": "received"
+    },
+    {
+      "id": 7500,
+      "at": "2026-10-10T13:15:19.120492+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7499,
+      "at": "2026-10-10T13:15:17.803217+00:00",
+      "event": "incident_completed",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": "dispatching",
+      "to": "completed"
+    },
+    {
+      "id": 7498,
+      "at": "2026-10-10T13:15:17.803217+00:00",
+      "event": "action_succeeded",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "c8153383-051b-43f0-9b33-c4570695e962",
+      "from": "executing",
+      "to": "succeeded"
+    },
+    {
+      "id": 7497,
+      "at": "2026-10-10T13:15:17.604439+00:00",
+      "event": "action_begin",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "c8153383-051b-43f0-9b33-c4570695e962",
+      "from": "offered",
+      "to": "executing"
+    },
+    {
+      "id": 7496,
+      "at": "2026-10-10T13:15:17.365515+00:00",
+      "event": "action_offered",
+      "actor": "worker",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "c8153383-051b-43f0-9b33-c4570695e962",
+      "from": "pending",
+      "to": "offered"
+    },
+    {
+      "id": 7495,
+      "at": "2026-10-10T13:15:17.116346+00:00",
+      "event": "action_released",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "c8153383-051b-43f0-9b33-c4570695e962",
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7494,
+      "at": "2026-10-10T13:15:17.116346+00:00",
+      "event": "action_succeeded",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "59fb3e51-3493-49f3-9e4c-9541d794fe36",
+      "from": "executing",
+      "to": "succeeded"
+    },
+    {
+      "id": 7493,
+      "at": "2026-10-10T13:15:16.575934+00:00",
+      "event": "dispatch_started",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": "approved",
+      "to": "dispatching"
+    },
+    {
+      "id": 7492,
+      "at": "2026-10-10T13:15:16.575934+00:00",
+      "event": "action_begin",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "59fb3e51-3493-49f3-9e4c-9541d794fe36",
+      "from": "offered",
+      "to": "executing"
+    },
+    {
+      "id": 7491,
+      "at": "2026-10-10T13:15:16.203840+00:00",
+      "event": "action_offered",
+      "actor": "worker",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "59fb3e51-3493-49f3-9e4c-9541d794fe36",
+      "from": "pending",
+      "to": "offered"
+    },
+    {
+      "id": 7490,
+      "at": "2026-10-10T13:15:15.802262+00:00",
+      "event": "incident_approved",
+      "actor": "reviewer-demo",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": "needs_review",
+      "to": "approved"
+    },
+    {
+      "id": 7489,
+      "at": "2026-10-10T13:15:15.802262+00:00",
+      "event": "action_planned",
+      "actor": "reviewer-demo",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "c8153383-051b-43f0-9b33-c4570695e962",
+      "from": null,
+      "to": "pending"
+    },
+    {
+      "id": 7488,
+      "at": "2026-10-10T13:15:15.802262+00:00",
+      "event": "action_planned",
+      "actor": "reviewer-demo",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": "59fb3e51-3493-49f3-9e4c-9541d794fe36",
+      "from": null,
+      "to": "pending"
+    },
+    {
+      "id": 7487,
+      "at": "2026-10-10T13:15:15.702419+00:00",
+      "event": "triage_completed",
+      "actor": "reviewer-demo",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7486,
+      "at": "2026-10-10T13:15:14.089310+00:00",
+      "event": "correction_applied",
+      "actor": "reviewer-demo",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": "needs_review",
+      "to": "needs_review"
+    },
+    {
+      "id": 7485,
+      "at": "2026-10-10T13:15:14.089310+00:00",
+      "event": "revision_created",
+      "actor": "reviewer-demo",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7484,
+      "at": "2026-10-10T13:15:13.970687+00:00",
+      "event": "intake_replayed",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7483,
+      "at": "2026-10-10T13:15:13.398154+00:00",
+      "event": "ready_for_review",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": "enriching",
+      "to": "needs_review"
+    },
+    {
+      "id": 7482,
+      "at": "2026-10-10T13:15:13.398154+00:00",
+      "event": "triage_completed",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7481,
+      "at": "2026-10-10T13:15:11.740375+00:00",
+      "event": "evidence_added",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7480,
+      "at": "2026-10-10T13:15:11.740375+00:00",
+      "event": "revision_created",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7479,
+      "at": "2026-10-10T13:15:11.702095+00:00",
+      "event": "enrichment_started",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": "received",
+      "to": "enriching"
+    },
+    {
+      "id": 7478,
+      "at": "2026-10-10T13:15:11.702095+00:00",
+      "event": "evidence_added",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7477,
+      "at": "2026-10-10T13:15:11.702095+00:00",
+      "event": "revision_created",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7476,
+      "at": "2026-10-10T13:15:11.605760+00:00",
+      "event": "incident_received",
+      "actor": "n8n",
+      "incident_id": "11952427-3779-45ea-90de-221708c8a8a9",
+      "action_id": null,
+      "from": null,
+      "to": "received"
+    },
+    {
+      "id": 7475,
+      "at": "2026-10-10T13:14:51.378363+00:00",
+      "event": "intake_replayed",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7474,
+      "at": "2026-10-10T13:14:51.004581+00:00",
+      "event": "ready_for_review",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": "enriching",
+      "to": "needs_review"
+    },
+    {
+      "id": 7473,
+      "at": "2026-10-10T13:14:51.004581+00:00",
+      "event": "triage_completed",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7472,
+      "at": "2026-10-10T13:14:49.791763+00:00",
+      "event": "evidence_added",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7471,
+      "at": "2026-10-10T13:14:49.791763+00:00",
+      "event": "revision_created",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7470,
+      "at": "2026-10-10T13:14:49.728618+00:00",
+      "event": "enrichment_started",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": "received",
+      "to": "enriching"
+    },
+    {
+      "id": 7469,
+      "at": "2026-10-10T13:14:49.728618+00:00",
+      "event": "evidence_added",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7468,
+      "at": "2026-10-10T13:14:49.728618+00:00",
+      "event": "revision_created",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7467,
+      "at": "2026-10-10T13:14:49.352454+00:00",
+      "event": "incident_received",
+      "actor": "n8n",
+      "incident_id": "c915c528-df90-45fc-98f9-81209a847313",
+      "action_id": null,
+      "from": null,
+      "to": "received"
+    },
+    {
+      "id": 7466,
+      "at": "2026-10-10T13:14:20.510544+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7465,
+      "at": "2026-10-10T13:12:19.245242+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7464,
+      "at": "2026-10-10T00:48:18.085658+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7463,
+      "at": "2026-10-10T00:47:18.087820+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7462,
+      "at": "2026-10-10T00:46:18.083423+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7461,
+      "at": "2026-10-10T00:45:18.058583+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7460,
+      "at": "2026-10-10T00:44:18.070559+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7459,
+      "at": "2026-10-10T00:43:18.061015+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7458,
+      "at": "2026-10-10T00:42:18.137617+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7457,
+      "at": "2026-10-10T00:41:18.059728+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7456,
+      "at": "2026-10-10T00:40:18.055973+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7455,
+      "at": "2026-10-10T00:39:18.056688+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7454,
+      "at": "2026-10-10T00:38:18.070262+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7453,
+      "at": "2026-10-10T00:37:18.067541+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7452,
+      "at": "2026-10-10T00:36:18.087943+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7451,
+      "at": "2026-10-10T00:35:18.220491+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7450,
+      "at": "2026-10-10T00:34:18.075235+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7449,
+      "at": "2026-10-10T00:33:18.078600+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7448,
+      "at": "2026-10-10T00:32:18.092314+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7447,
+      "at": "2026-10-10T00:31:18.054408+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7446,
+      "at": "2026-10-10T00:30:18.061721+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7445,
+      "at": "2026-10-10T00:29:18.078036+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7444,
+      "at": "2026-10-10T00:28:18.106778+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7443,
+      "at": "2026-10-10T00:27:18.072223+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7442,
+      "at": "2026-10-10T00:26:18.091324+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7441,
+      "at": "2026-10-10T00:25:18.084884+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7440,
+      "at": "2026-10-10T00:24:18.091260+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7439,
+      "at": "2026-10-10T00:23:18.071679+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7438,
+      "at": "2026-10-10T00:22:18.114661+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7437,
+      "at": "2026-10-10T00:21:18.068026+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7436,
+      "at": "2026-10-10T00:20:18.065887+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7435,
+      "at": "2026-10-10T00:19:18.078174+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7434,
+      "at": "2026-10-10T00:18:18.081713+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7433,
+      "at": "2026-10-10T00:17:18.073468+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7432,
+      "at": "2026-10-10T00:16:18.053911+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7431,
+      "at": "2026-10-10T00:15:18.090750+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7430,
+      "at": "2026-10-10T00:14:18.091998+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7429,
+      "at": "2026-10-10T00:13:18.060770+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7428,
+      "at": "2026-10-10T00:12:18.054444+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7427,
+      "at": "2026-10-10T00:11:18.048296+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7426,
+      "at": "2026-10-10T00:10:18.049477+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7425,
+      "at": "2026-10-10T00:09:18.048798+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7424,
+      "at": "2026-10-10T00:08:18.053173+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7423,
+      "at": "2026-10-10T00:07:18.043658+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7422,
+      "at": "2026-10-10T00:06:18.049383+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7421,
+      "at": "2026-10-10T00:05:18.057806+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7420,
+      "at": "2026-10-10T00:04:18.042024+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7419,
+      "at": "2026-10-10T00:03:18.060107+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7418,
+      "at": "2026-10-10T00:02:18.054309+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7417,
+      "at": "2026-10-10T00:01:18.053364+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7416,
+      "at": "2026-10-10T00:00:18.058607+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7415,
+      "at": "2026-10-09T23:59:18.046872+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7414,
+      "at": "2026-10-09T23:58:18.048564+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7413,
+      "at": "2026-10-09T23:57:18.046483+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7412,
+      "at": "2026-10-09T23:56:18.040857+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7411,
+      "at": "2026-10-09T23:55:18.050499+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7410,
+      "at": "2026-10-09T23:54:18.063198+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7409,
+      "at": "2026-10-09T23:53:18.056372+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7408,
+      "at": "2026-10-09T23:52:18.173418+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7407,
+      "at": "2026-10-09T23:51:18.049233+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7406,
+      "at": "2026-10-09T23:50:18.052797+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7405,
+      "at": "2026-10-09T23:49:18.087270+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7404,
+      "at": "2026-10-09T23:48:18.040044+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7403,
+      "at": "2026-10-09T23:47:18.051646+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7402,
+      "at": "2026-10-09T23:46:18.050685+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7401,
+      "at": "2026-10-09T23:45:18.088147+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7400,
+      "at": "2026-10-09T23:44:18.058181+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7399,
+      "at": "2026-10-09T23:43:18.044125+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7398,
+      "at": "2026-10-09T23:42:18.058303+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7397,
+      "at": "2026-10-09T23:41:18.051158+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7396,
+      "at": "2026-10-09T23:40:18.076238+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7395,
+      "at": "2026-10-09T23:39:18.053732+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7394,
+      "at": "2026-10-09T23:38:18.057592+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7393,
+      "at": "2026-10-09T23:37:18.053747+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7392,
+      "at": "2026-10-09T23:36:18.039392+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7391,
+      "at": "2026-10-09T23:35:18.122371+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7390,
+      "at": "2026-10-09T23:34:18.070199+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7389,
+      "at": "2026-10-09T23:33:18.059522+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7388,
+      "at": "2026-10-09T23:32:18.051876+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7387,
+      "at": "2026-10-09T23:31:18.050846+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7386,
+      "at": "2026-10-09T23:30:18.058579+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7385,
+      "at": "2026-10-09T23:29:18.057431+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7384,
+      "at": "2026-10-09T23:28:18.061020+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7383,
+      "at": "2026-10-09T23:27:18.054901+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7382,
+      "at": "2026-10-09T23:26:18.057780+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7381,
+      "at": "2026-10-09T23:25:18.070121+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7380,
+      "at": "2026-10-09T23:24:18.056274+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7379,
+      "at": "2026-10-09T23:23:18.056542+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7378,
+      "at": "2026-10-09T23:22:18.055461+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7377,
+      "at": "2026-10-09T23:21:18.066142+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7376,
+      "at": "2026-10-09T23:20:18.058677+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7375,
+      "at": "2026-10-09T23:19:18.050673+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7374,
+      "at": "2026-10-09T23:18:18.065456+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7373,
+      "at": "2026-10-09T23:17:18.051048+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7372,
+      "at": "2026-10-09T23:16:18.057603+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7371,
+      "at": "2026-10-09T23:15:18.120493+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7370,
+      "at": "2026-10-09T23:14:18.062319+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7369,
+      "at": "2026-10-09T23:13:18.047840+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7368,
+      "at": "2026-10-09T23:12:18.047090+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7367,
+      "at": "2026-10-09T23:11:18.068785+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7366,
+      "at": "2026-10-09T23:10:18.056180+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7365,
+      "at": "2026-10-09T23:09:18.049955+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7364,
+      "at": "2026-10-09T23:08:18.044066+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7363,
+      "at": "2026-10-09T23:07:18.077652+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7362,
+      "at": "2026-10-09T23:06:18.052143+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7361,
+      "at": "2026-10-09T23:05:18.039234+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7360,
+      "at": "2026-10-09T23:04:18.053301+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7359,
+      "at": "2026-10-09T23:03:18.063417+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7358,
+      "at": "2026-10-09T23:02:18.045574+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7357,
+      "at": "2026-10-09T23:01:18.053069+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7356,
+      "at": "2026-10-09T23:00:18.055215+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7355,
+      "at": "2026-10-09T22:59:18.087787+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7354,
+      "at": "2026-10-09T22:58:18.045283+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7353,
+      "at": "2026-10-09T22:57:18.061068+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7352,
+      "at": "2026-10-09T22:56:18.050010+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7351,
+      "at": "2026-10-09T22:55:18.078082+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7350,
+      "at": "2026-10-09T22:54:18.099214+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7349,
+      "at": "2026-10-09T22:53:18.076621+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7348,
+      "at": "2026-10-09T22:52:18.053106+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7347,
+      "at": "2026-10-09T22:51:18.096278+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7346,
+      "at": "2026-10-09T22:50:18.074775+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7345,
+      "at": "2026-10-09T22:49:18.049235+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7344,
+      "at": "2026-10-09T22:48:18.072628+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7343,
+      "at": "2026-10-09T22:47:18.053528+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7342,
+      "at": "2026-10-09T22:46:18.055928+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7341,
+      "at": "2026-10-09T22:45:18.091907+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7340,
+      "at": "2026-10-09T22:44:18.049581+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7339,
+      "at": "2026-10-09T22:43:18.059059+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7338,
+      "at": "2026-10-09T22:42:18.063400+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7337,
+      "at": "2026-10-09T22:41:18.088381+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7336,
+      "at": "2026-10-09T22:40:18.077648+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7335,
+      "at": "2026-10-09T22:39:18.074900+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7334,
+      "at": "2026-10-09T22:38:18.063713+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7333,
+      "at": "2026-10-09T22:37:18.070102+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7332,
+      "at": "2026-10-09T22:36:18.055173+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7331,
+      "at": "2026-10-09T22:35:18.064459+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7330,
+      "at": "2026-10-09T22:34:18.054060+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7329,
+      "at": "2026-10-09T22:33:18.075151+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7328,
+      "at": "2026-10-09T22:32:18.064954+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    },
+    {
+      "id": 7327,
+      "at": "2026-10-09T22:31:18.100126+00:00",
+      "event": "recovery_sweep",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null
+    }
+  ],
+  "recent_failures": [
+    {
+      "id": 7254,
+      "at": "2026-10-09T22:09:11.690274+00:00",
+      "event": "n8n_execution_failed",
+      "actor": "n8n",
+      "incident_id": null,
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "mode": "webhook",
+        "last_node": "Reserve digest",
+        "workflow_name": "RF 06 Daily digest"
+      }
+    },
+    {
+      "id": 7129,
+      "at": "2026-10-09T22:08:35.867017+00:00",
+      "event": "execution_lease_expired",
+      "actor": "worker",
+      "incident_id": "27e3fd77-4fb5-46ec-9890-a5686ddd72cd",
+      "action_id": "a44f4f31-3326-4b4a-b4b2-5df07be8c848",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "fencing_token": 2
+      }
+    },
+    {
+      "id": 7128,
+      "at": "2026-10-09T22:08:35.867017+00:00",
+      "event": "execution_lease_expired",
+      "actor": "worker",
+      "incident_id": "65369ddd-d038-4073-823c-419d969a7073",
+      "action_id": "1e03569c-a8fe-43fb-9f8b-3203da5af032",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 7100,
+      "at": "2026-10-09T22:08:22.568511+00:00",
+      "event": "action_dead_max_attempts",
+      "actor": "n8n",
+      "incident_id": "bd71278a-2d74-4174-9827-697014a94258",
+      "action_id": "9491bf46-a051-4bd2-bb15-93e8a1b4157c",
+      "from": "executing",
+      "to": "dead",
+      "payload": {
+        "attempt": 5,
+        "outcome": "retryable",
+        "http_status": 503,
+        "fencing_token": 5
+      }
+    },
+    {
+      "id": 7067,
+      "at": "2026-10-09T22:08:08.458731+00:00",
+      "event": "action_dead_permanent",
+      "actor": "n8n",
+      "incident_id": "bc7329e8-f260-44b5-a493-79a9d6938918",
+      "action_id": "233130c0-f584-444d-9373-d3dd48371d98",
+      "from": "executing",
+      "to": "dead",
+      "payload": {
+        "attempt": 1,
+        "outcome": "permanent",
+        "http_status": null,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 7047,
+      "at": "2026-10-09T22:07:59.900424+00:00",
+      "event": "action_outcome_unknown",
+      "actor": "n8n",
+      "incident_id": "0a25ef6a-42a7-4c75-878a-16bb7b1ac052",
+      "action_id": "1c0c0e8c-7d9b-4080-8fc0-fd36cba1f95d",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "outcome": "ambiguous",
+        "http_status": null,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 7028,
+      "at": "2026-10-09T22:07:53.635742+00:00",
+      "event": "execution_lease_expired",
+      "actor": "pytest-worker",
+      "incident_id": "5691d4f3-f1fa-4c22-bc04-52050e3fde87",
+      "action_id": "dba3ce61-f88c-4837-bfd9-a37b2157da32",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 7012,
+      "at": "2026-10-09T22:07:47.831442+00:00",
+      "event": "execution_lease_expired",
+      "actor": "pytest-worker",
+      "incident_id": "f3126e73-485d-41f1-90b6-a540df8542c4",
+      "action_id": "0a2ab67e-4bd3-4817-8313-58f65400eebc",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 6991,
+      "at": "2026-10-09T22:07:40.424486+00:00",
+      "event": "execution_lease_expired",
+      "actor": "pytest-worker",
+      "incident_id": "63990a2a-9783-4176-9f26-2010c3ef9a6b",
+      "action_id": "e59516da-75df-463e-afc3-ca0531d844a8",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 6962,
+      "at": "2026-10-09T22:07:30.289257+00:00",
+      "event": "ack_rejected_stale_token",
+      "actor": "n8n",
+      "incident_id": "27e3fd77-4fb5-46ec-9890-a5686ddd72cd",
+      "action_id": "a44f4f31-3326-4b4a-b4b2-5df07be8c848",
+      "from": null,
+      "to": null,
+      "payload": {
+        "outcome": "succeeded"
+      }
+    },
+    {
+      "id": 6959,
+      "at": "2026-10-09T22:07:29.285259+00:00",
+      "event": "begin_rejected_stale_token",
+      "actor": "n8n",
+      "incident_id": "27e3fd77-4fb5-46ec-9890-a5686ddd72cd",
+      "action_id": "a44f4f31-3326-4b4a-b4b2-5df07be8c848",
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6915,
+      "at": "2026-10-09T22:07:09.383510+00:00",
+      "event": "begin_rejected_stale_token",
+      "actor": "n8n",
+      "incident_id": "66dcc19e-0d9d-480a-bed5-1a1fff871b1e",
+      "action_id": "7a6dae4a-8abb-4a9b-a696-e964013f94f7",
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6886,
+      "at": "2026-10-09T22:06:58.489189+00:00",
+      "event": "intake_conflict",
+      "actor": "n8n",
+      "incident_id": "1bbac0bb-9036-4687-aa0f-28b968316bcc",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6856,
+      "at": "2026-10-09T22:06:48.793518+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "pytest",
+      "incident_id": "dd45c421-6612-4e7b-b8d0-a259dddb6ef6",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6855,
+      "at": "2026-10-09T22:06:48.793518+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "dd45c421-6612-4e7b-b8d0-a259dddb6ef6",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "incident revision changed during inference (2 -> 3)"
+        ]
+      }
+    },
+    {
+      "id": 6844,
+      "at": "2026-10-09T22:06:45.381656+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "pytest",
+      "incident_id": "65ad5ae5-7c5e-47af-babe-5e9e37602f39",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6843,
+      "at": "2026-10-09T22:06:45.381656+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "65ad5ae5-7c5e-47af-babe-5e9e37602f39",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 2,
+        "revision": 2,
+        "error_kinds": [
+          "schema"
+        ]
+      }
+    },
+    {
+      "id": 6842,
+      "at": "2026-10-09T22:06:45.381656+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "65ad5ae5-7c5e-47af-babe-5e9e37602f39",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "schema"
+        ]
+      }
+    },
+    {
+      "id": 6834,
+      "at": "2026-10-09T22:06:42.332324+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "pytest",
+      "incident_id": "661359fb-87fa-44f6-b0c1-876c85a66050",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6833,
+      "at": "2026-10-09T22:06:42.332324+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "661359fb-87fa-44f6-b0c1-876c85a66050",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 2,
+        "revision": 2,
+        "error_kinds": [
+          "evidence_manifest_id 'mf-other' != 'mf-2debdb98ffdd0f81'",
+          "incident_revision 99 != 2"
+        ]
+      }
+    },
+    {
+      "id": 6832,
+      "at": "2026-10-09T22:06:42.332324+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "661359fb-87fa-44f6-b0c1-876c85a66050",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "evidence_manifest_id 'mf-other' != 'mf-2debdb98ffdd0f81'",
+          "incident_revision 99 != 2"
+        ]
+      }
+    },
+    {
+      "id": 6824,
+      "at": "2026-10-09T22:06:39.150847+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "pytest",
+      "incident_id": "7f096976-47cb-432e-bbc5-2263b26f4894",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6823,
+      "at": "2026-10-09T22:06:39.150847+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "7f096976-47cb-432e-bbc5-2263b26f4894",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 2,
+        "revision": 2,
+        "error_kinds": [
+          "unknown evidence ref 'man-doesnotexist'"
+        ]
+      }
+    },
+    {
+      "id": 6822,
+      "at": "2026-10-09T22:06:39.150847+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "7f096976-47cb-432e-bbc5-2263b26f4894",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "unknown evidence ref 'man-doesnotexist'"
+        ]
+      }
+    },
+    {
+      "id": 6814,
+      "at": "2026-10-09T22:06:35.864145+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "542edbd2-571d-4ee1-9a98-d67ec328de1b",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "schema"
+        ]
+      }
+    },
+    {
+      "id": 6806,
+      "at": "2026-10-09T22:06:32.419780+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "pytest",
+      "incident_id": "61337232-50cf-4527-8e38-102bf987e206",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6805,
+      "at": "2026-10-09T22:06:32.419780+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "61337232-50cf-4527-8e38-102bf987e206",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 2,
+        "revision": 2,
+        "error_kinds": [
+          "schema"
+        ]
+      }
+    },
+    {
+      "id": 6804,
+      "at": "2026-10-09T22:06:32.419780+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "61337232-50cf-4527-8e38-102bf987e206",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "schema"
+        ]
+      }
+    },
+    {
+      "id": 6796,
+      "at": "2026-10-09T22:06:27.612431+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "pytest",
+      "incident_id": "b16f6e1c-61c9-4324-b8c6-00a8850f4598",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 6795,
+      "at": "2026-10-09T22:06:27.612431+00:00",
+      "event": "triage_failed",
+      "actor": "pytest",
+      "incident_id": "b16f6e1c-61c9-4324-b8c6-00a8850f4598",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "double-model",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "RuntimeError"
+        ]
+      }
+    },
+    {
+      "id": 6717,
+      "at": "2026-10-09T22:04:36.452661+00:00",
+      "event": "dispatch_not_received",
+      "actor": "worker",
+      "incident_id": "49388cc4-04c3-4588-bc80-f9db01894d69",
+      "action_id": "fa335e91-1c49-45d3-b91d-3f749e654249",
+      "from": "offered",
+      "to": "retry_wait",
+      "payload": {
+        "reason": "connect_error:ConnectError",
+        "retry_in_s": 11.8
+      }
+    },
+    {
+      "id": 6715,
+      "at": "2026-10-09T22:04:30.299409+00:00",
+      "event": "dispatch_not_received",
+      "actor": "worker",
+      "incident_id": "49388cc4-04c3-4588-bc80-f9db01894d69",
+      "action_id": "fa335e91-1c49-45d3-b91d-3f749e654249",
+      "from": "offered",
+      "to": "retry_wait",
+      "payload": {
+        "reason": "connect_error:ConnectError",
+        "retry_in_s": 5.6
+      }
+    },
+    {
+      "id": 6713,
+      "at": "2026-10-09T22:04:26.180736+00:00",
+      "event": "dispatch_not_received",
+      "actor": "worker",
+      "incident_id": "49388cc4-04c3-4588-bc80-f9db01894d69",
+      "action_id": "fa335e91-1c49-45d3-b91d-3f749e654249",
+      "from": "offered",
+      "to": "retry_wait",
+      "payload": {
+        "reason": "connect_error:ConnectError",
+        "retry_in_s": 3.2
+      }
+    },
+    {
+      "id": 6711,
+      "at": "2026-10-09T22:04:20.292752+00:00",
+      "event": "dispatch_not_received",
+      "actor": "worker",
+      "incident_id": "49388cc4-04c3-4588-bc80-f9db01894d69",
+      "action_id": "fa335e91-1c49-45d3-b91d-3f749e654249",
+      "from": "offered",
+      "to": "retry_wait",
+      "payload": {
+        "reason": "connect_error:ConnectError",
+        "retry_in_s": 1.6
+      }
+    },
+    {
+      "id": 6694,
+      "at": "2026-10-09T22:03:54.860437+00:00",
+      "event": "action_outcome_unknown",
+      "actor": "n8n",
+      "incident_id": "cb9b52c6-824c-4295-b16e-bab959c21f30",
+      "action_id": "5cc106fd-372a-4a85-8d8b-c2e17c113f52",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "outcome": "ambiguous",
+        "http_status": 502,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 6675,
+      "at": "2026-10-09T22:03:36.100422+00:00",
+      "event": "action_outcome_unknown",
+      "actor": "n8n",
+      "incident_id": "02eada09-1384-46ec-8632-71127439e5fb",
+      "action_id": "59710966-ccbd-4676-8445-11c422c6f5e5",
+      "from": "executing",
+      "to": "uncertain",
+      "payload": {
+        "attempt": 1,
+        "outcome": "ambiguous",
+        "http_status": null,
+        "fencing_token": 1
+      }
+    },
+    {
+      "id": 4658,
+      "at": "2026-10-09T21:50:26.908324+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "ea206c74-8818-4ea8-b395-7f60c8d58db0",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4657,
+      "at": "2026-10-09T21:50:26.908324+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "ea206c74-8818-4ea8-b395-7f60c8d58db0",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    },
+    {
+      "id": 4653,
+      "at": "2026-10-09T21:50:10.806395+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "c0b953ac-dc7e-4787-8aa7-f751ca2aee09",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4652,
+      "at": "2026-10-09T21:50:10.806395+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "c0b953ac-dc7e-4787-8aa7-f751ca2aee09",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    },
+    {
+      "id": 4612,
+      "at": "2026-10-09T21:49:26.013454+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "47f5b163-6d53-4717-aa0c-50980a592267",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4611,
+      "at": "2026-10-09T21:49:26.013454+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "47f5b163-6d53-4717-aa0c-50980a592267",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    },
+    {
+      "id": 4607,
+      "at": "2026-10-09T21:49:09.920890+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "a16b74ef-37fa-4474-80a0-9131be6e2990",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4606,
+      "at": "2026-10-09T21:49:09.920890+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "a16b74ef-37fa-4474-80a0-9131be6e2990",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    },
+    {
+      "id": 4592,
+      "at": "2026-10-09T21:48:25.659161+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "b9c8a96b-c41b-4af0-a92c-60def2cf3ee8",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4591,
+      "at": "2026-10-09T21:48:25.659161+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "b9c8a96b-c41b-4af0-a92c-60def2cf3ee8",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    },
+    {
+      "id": 4587,
+      "at": "2026-10-09T21:48:09.575886+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "42bcc64e-8acc-4d6a-8eda-5a5c7e513b97",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4586,
+      "at": "2026-10-09T21:48:09.575886+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "42bcc64e-8acc-4d6a-8eda-5a5c7e513b97",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "llm",
+        "attempt": 1,
+        "revision": 2,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    },
+    {
+      "id": 4546,
+      "at": "2026-10-09T21:47:24.068510+00:00",
+      "event": "llm_fallback_to_rules",
+      "actor": "n8n",
+      "incident_id": "a1a81bb1-75ad-4798-8109-ab5f867739d6",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {}
+    },
+    {
+      "id": 4545,
+      "at": "2026-10-09T21:47:24.068510+00:00",
+      "event": "triage_failed",
+      "actor": "n8n",
+      "incident_id": "a1a81bb1-75ad-4798-8109-ab5f867739d6",
+      "action_id": null,
+      "from": null,
+      "to": null,
+      "payload": {
+        "model": "openai/gpt-oss-20b",
+        "engine": "retrieval_llm",
+        "attempt": 1,
+        "revision": 3,
+        "error_kinds": [
+          "ConnectError"
+        ]
+      }
+    }
+  ],
+  "images": [
+    {
+      "service": "repairflow-ticket-service-1",
+      "image": "repairflow-sim:dev"
+    },
+    {
+      "service": "repairflow-worker-1",
+      "image": "repairflow-api:dev"
+    },
+    {
+      "service": "repairflow-postgres-1",
+      "image": "postgres:17-alpine"
+    },
+    {
+      "service": "repairflow-mailpit-1",
+      "image": "axllent/mailpit:v1.31.4"
+    },
+    {
+      "service": "repairflow-telemetry-sim-1",
+      "image": "repairflow-sim:dev"
+    },
+    {
+      "service": "repairflow-n8n-1",
+      "image": "docker.n8n.io/n8nio/n8n:2.42.6"
+    },
+    {
+      "service": "repairflow-api-1",
+      "image": "repairflow-api:dev"
+    }
+  ],
+  "n8n_workflows": [
+    {
+      "id": "RFw00ErrorHndl1x",
+      "name": "RF 00 Error handler",
+      "active": "true"
+    },
+    {
+      "id": "RFw01Intake00001",
+      "name": "RF 01 Intake and enrichment",
+      "active": "true"
+    },
+    {
+      "id": "RFw03DispTicket1",
+      "name": "RF 03 Dispatch ticket",
+      "active": "true"
+    },
+    {
+      "id": "RFw04DispNotify1",
+      "name": "RF 04 Dispatch notification",
+      "active": "true"
+    },
+    {
+      "id": "RFw05Recovery001",
+      "name": "RF 05 Recovery sweep",
+      "active": "true"
+    },
+    {
+      "id": "RFw06Digest00001",
+      "name": "RF 06 Daily digest",
+      "active": "true"
+    }
+  ]
+}

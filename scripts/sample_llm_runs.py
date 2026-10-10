@@ -5,6 +5,7 @@ artifacts/demo/llm_runs_<UTC timestamp>.json and a printed summary.
 """
 import json
 import pathlib
+import sys
 import time
 import urllib.request
 import uuid
@@ -30,6 +31,10 @@ def call(method, url, body=None, headers=None):
                                  headers={"Content-Type": "application/json", **(headers or {})})
     with urllib.request.urlopen(req, timeout=120) as r:
         return json.loads(r.read())
+
+
+# Model text can contain any character; Windows consoles/pipes default to cp1252.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def main():

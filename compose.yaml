@@ -107,6 +107,10 @@ services:
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
       EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
       EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      # n8n execution history is a debugging aid, never business state: prune it (14 days or 20k executions).
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "336"
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: "20000"
     volumes:
       - n8ndata:/home/node/.n8n
       - ./workflows:/workflows:ro
