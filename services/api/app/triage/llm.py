@@ -9,6 +9,7 @@ to the rules engine. Report text and documents are passed as untrusted data.
 import json
 import re
 import time
+from datetime import datetime
 from dataclasses import dataclass, field
 
 import httpx
@@ -31,8 +32,25 @@ Rules:
 - Write in English. Keep the draft ticket factual and cite evidence ids in square brackets.
 - Copy incident_revision and evidence_manifest_id exactly from the input."""
 
+# v2: decision criteria written from the dev-split error analysis (evaluation/README.md). Not tuned on test.
+PROMPT_V2 = "triage-llm-2026.10-2"
+SYSTEM_V2 = SYSTEM_V1 + """
+
+Deciding suggested_next_step (apply in this order):
+1. "clarify" if any contradiction is reported, if telemetry is unavailable, if a telemetry item has "stale": true,
+   if the report is too vague to name a symptom, or if the report is not about this equipment (then category "other").
+2. "prepare_ticket" if the symptom is identified and current telemetry (error code or values) is consistent with it.
+3. "review" otherwise.
+
+missing_information lists only what the reviewer needs before opening a ticket: which equipment, when, the observed
+symptom, and current telemetry. Do not list the root cause, the faulty component, measurements a technician would take,
+or what an error code means: finding those is the purpose of the ticket.
+
+Telemetry marked "stale": true is too old to describe the current state: it cannot contradict the operator.
+Report the staleness under missing_information instead of a contradiction."""
+
 # Versions stay side by side so a replay or an evaluation can name the exact prompt it used.
-PROMPTS = {PROMPT_V1: SYSTEM_V1}
+PROMPTS = {PROMPT_V1: SYSTEM_V1, PROMPT_V2: SYSTEM_V2}
 
 
 def prompt_version() -> str:
@@ -95,8 +113,23 @@ def json_schema(revision: int, manifest_id: str, evidence_ids: list[str]) -> dic
     }
 
 
+def _annotate_telemetry(evidence: list[dict], reported_at: str, max_age_s: int) -> list[dict]:
+    """v2 context: deterministic age/staleness, computed like the rules engine, instead of asking the model."""
+    out = []
+    reported = datetime.fromisoformat(reported_at)
+    for e in evidence:
+        observed = (e.get("content") or {}).get("observed_at") if e.get("kind") == "telemetry" else None
+        if observed:
+            age = (reported - datetime.fromisoformat(observed)).total_seconds()
+            e = {**e, "age_seconds_at_report": int(age), "stale": age > max_age_s}
+        out.append(e)
+    return out
+
+
 def build_context(*, revision: int, manifest_id: str, equipment: dict, data: dict, evidence: list[dict],
                   telemetry_max_age_s: int) -> dict:
+    if prompt_version() != PROMPT_V1:
+        evidence = _annotate_telemetry(evidence, data["reported_at"], telemetry_max_age_s)
     return {
         "incident_revision": revision,
         "evidence_manifest_id": manifest_id,

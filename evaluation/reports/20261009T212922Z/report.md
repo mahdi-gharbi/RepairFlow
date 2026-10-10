@@ -2,6 +2,7 @@
 
 Dataset `cases_v1.jsonl`: 51 synthetic cases. **Labels: draft-unreviewed** (written by the same AI assistant that wrote the cases; not a gold standard until reviewed by a human).
 LLM configurations were run on split `test`. Throttled provider attempts (HTTP 429), retried and excluded from validity: 0. Wall time: 1400 s.
+Versions: {"prompt": "triage-llm-2026.10-1", "policy": "policy-2026.10-1", "rules": "rules-2026.10-2", "llm": {"model": "openai/gpt-oss-20b", "provider_host": "api.groq.com"}, "note": "added after the run from the deployed configuration (runner did not record versions yet)"}
 Re-run 2026-10-09T21:59:08+00:00: 8 case(s) (provider unreachable (network/DNS) during the first pass): arm_vibration-03, telemetry_unavailable-03, telemetry_unavailable-04, telemetry_stale-03, telemetry_stale-04, vague-03, vague-04, out_of_scope-03.
 
 Model-quality columns for `llm` / `retrieval_llm` are computed **only on valid model outputs** (n shown); the end-to-end table below includes the rules fallback, which is what a reviewer actually receives.

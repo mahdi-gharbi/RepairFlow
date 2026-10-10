@@ -3,6 +3,7 @@
     python evaluation/runner/run_eval.py                 # rules on all cases, LLM configs on the test split
     python evaluation/runner/run_eval.py --llm-split all
     python evaluation/runner/run_eval.py --retry-unreachable evaluation/reports/<run>   # redo provider-outage cases
+    python evaluation/runner/run_eval.py --llm-split dev --resume evaluation/reports/<run>  # continue after quota/crash
     python evaluation/runner/report.py <run dir>         # recompute metrics/report from results.jsonl
 
 Configurations: rules (no LLM) | llm (no documents in context) | retrieval_llm (lexical manual evidence).
@@ -165,18 +166,24 @@ def main():
     ap.add_argument("--dataset", default=str(ROOT / "evaluation/datasets/cases_v1.jsonl"))
     ap.add_argument("--llm-split", default="test", choices=["test", "dev", "all", "none"])
     ap.add_argument("--retry-unreachable", metavar="RUN_DIR")
+    ap.add_argument("--resume", metavar="RUN_DIR", help="continue an interrupted run (provider daily quota, crash)")
     args = ap.parse_args()
     if args.retry_unreachable:
         return retry_unreachable(pathlib.Path(args.retry_unreachable))
     cases = [json.loads(l) for l in pathlib.Path(args.dataset).read_text(encoding="utf-8").splitlines() if l.strip()]
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    out = ROOT / "evaluation" / "reports" / run_id
+    out = pathlib.Path(args.resume) if args.resume else ROOT / "evaluation" / "reports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = out.name
     out.mkdir(parents=True, exist_ok=True)
+    results = out / "results.jsonl"
+    done = {json.loads(l)["case"]["id"] for l in results.read_text(encoding="utf-8").splitlines() if l.strip()} if results.exists() else set()
     pacer, stats = Pacer(), {"throttled": 0}
     _, me = call("GET", "/v1/me", headers=REVIEWER)
+    _, diag = call("GET", "/v1/ops/diagnostics", headers=REVIEWER)  # exact policy/rules/prompt/model versions
     started = time.monotonic()
-    with (out / "results.jsonl").open("w", encoding="utf-8", newline="\n") as f:
+    with results.open("a", encoding="utf-8", newline="\n") as f:
         for n, case in enumerate(cases, 1):
+            if case["id"] in done:
+                continue
             use_llm = args.llm_split == "all" or case["split"] == args.llm_split
             row = run_case(case, run_id, use_llm, pacer, stats)
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -184,16 +191,22 @@ def main():
             print(f"[{n}/{len(cases)}] {case['id']:<26} rules={row['rules']['proposal']['category'] if row['rules']['proposal'] else '-'}"
                   + (f" llm={'ok' if row['llm']['valid'] else 'fail'} rllm={'ok' if row['retrieval_llm']['valid'] else 'fail'}" if use_llm else ""),
                   flush=True)
-    meta = {"run_id": run_id, "dataset": pathlib.Path(args.dataset).name, "cases": len(cases), "llm_split": args.llm_split,
-            "throttled_attempts": stats["throttled"], "wall_s": round(time.monotonic() - started), "api_user": me,
-            "llm": {"provider": "Groq (OpenAI-compatible)", "model": "see results (model per run)"},
-            "hardware": "client: i7-10510U / 20 GB RAM laptop; inference is remote (provider hardware unknown)"}
-    (out / "meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8", newline="\n")
+    meta_path = out / "meta.json"
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    meta.update({"run_id": run_id, "dataset": pathlib.Path(args.dataset).name, "cases": len(cases), "llm_split": args.llm_split,
+                 "throttled_attempts": meta.get("throttled_attempts", 0) + stats["throttled"],
+                 "wall_s": meta.get("wall_s", 0) + round(time.monotonic() - started), "api_user": me,
+                 "versions": diag.get("versions"),
+                 "llm": {"provider": "Groq (OpenAI-compatible)", "model": "see results (model per run)"},
+                 "hardware": "client: i7-10510U / 20 GB RAM laptop; inference is remote (provider hardware unknown)"})
+    if args.resume:
+        meta.setdefault("resumed", []).append({"at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                               "skipped_already_done": len(done)})
+    meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {out.relative_to(ROOT)}")
     sys.path.insert(0, str(pathlib.Path(__file__).parent))
     import report
     report.main(out)
-
 
 if __name__ == "__main__":
     main()

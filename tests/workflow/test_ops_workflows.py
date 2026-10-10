@@ -1,6 +1,7 @@
 """Imported n8n operations workflows (W0 error handler, W5 recovery, W6 digest) and the SSE stream."""
 import json
 import random
+import re
 import subprocess
 import threading
 import time
@@ -100,7 +101,7 @@ def test_diagnostics_bundle_is_allow_listed():
     assert d.status_code == 200
     body = d.text
     assert iid in body and marker not in body                      # ids yes, report text never
-    assert not [k for k, v in ENV.items() if v and len(v) >= 8 and v in body]
+    assert not [k for k, v in ENV.items() if re.search(r"KEY|TOKEN|PASSWORD|SECRET", k) and v and v in body]
     assert {"schema", "policy", "rules", "prompt", "llm"} <= set(d.json()["versions"])
 
 

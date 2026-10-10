@@ -94,6 +94,7 @@ docker compose exec -T postgres psql -U postgres -d n8n -tAc   "select id || ' a
 leak=0
 while IFS='=' read -r key value; do
   [[ -z "$key" || "$key" == \#* || -z "$value" ]] && continue
+  [[ "$key" =~ (KEY|TOKEN|PASSWORD|SECRET) ]] || continue  # configuration values (model, prompt version) are not secrets
   if grep -rqF -- "$value" workflows/; then echo "SECRET LEAK: $key found in workflows/" >&2; leak=1; fi
 done < .env
 [[ $leak -eq 0 ]] || exit 1

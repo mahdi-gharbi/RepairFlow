@@ -6,6 +6,7 @@ image versions and n8n workflow activation. Fails if any .env value appears in t
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import urllib.request
@@ -33,7 +34,7 @@ def main():
     bundle["n8n_workflows"] = [dict(zip(("id", "name", "active"), l.split("|"))) for l in workflows.splitlines() if l.strip()]
 
     text = json.dumps(bundle, indent=2)
-    leaks = [k for k, v in ENV.items() if v and len(v) >= 8 and v in text]
+    leaks = [k for k, v in ENV.items() if re.search(r"KEY|TOKEN|PASSWORD|SECRET", k) and v and v in text]
     if leaks:
         sys.exit(f"refusing to write: values of {leaks} found in the bundle")
     out = ROOT / "artifacts" / f"diagnostics_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"

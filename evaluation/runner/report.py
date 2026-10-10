@@ -150,6 +150,7 @@ def render(m: dict, rows: list[dict]) -> str:
              "(written by the same AI assistant that wrote the cases; not a gold standard until reviewed by a human).",
              f"LLM configurations were run on split `{meta.get('llm_split')}`. Throttled provider attempts (HTTP 429), retried and "
              f"excluded from validity: {meta.get('throttled_attempts')}. Wall time: {meta.get('wall_s')} s.",
+             f"Versions: {json.dumps(meta.get('versions'))}" if meta.get("versions") else "Versions: not recorded",
              *[f"Re-run {r['at']}: {len(r['cases'])} case(s) ({r['reason']}): {', '.join(r['cases'])}." for r in meta.get("reruns", [])],
              "", "Model-quality columns for `llm` / `retrieval_llm` are computed **only on valid model outputs** (n shown); "
              "the end-to-end table below includes the rules fallback, which is what a reviewer actually receives.", ""]

@@ -87,3 +87,23 @@ def test_digest_changes_with_revision_args_and_evidence():
     assert d != plan_digest(incident_id="i", revision=3, plan=plan, evidence_versions=ev)
     assert d != plan_digest(incident_id="i", revision=2, plan=[{"type": "create_ticket", "args": {"title": "b"}}], evidence_versions=ev)
     assert d != plan_digest(incident_id="i", revision=2, plan=plan, evidence_versions=[{**ev[0], "source_version": "v2"}])
+
+
+def test_prompt_v2_context_marks_stale_telemetry_deterministically(monkeypatch):
+    import dataclasses
+
+    import app.config
+    from app.triage import llm
+    base = app.config.get_settings()
+    monkeypatch.setattr(app.config, "_settings", dataclasses.replace(base, llm_prompt_version=llm.PROMPT_V2))
+    ev = [{"id": "tel-1", "kind": "telemetry", "content": {"observed_at": "2026-10-09T06:10:00+00:00"}},
+          {"id": "msg-1", "kind": "message", "content": {"description": "x"}}]
+    ctx = llm.build_context(revision=2, manifest_id="mf", equipment={}, evidence=ev, telemetry_max_age_s=3600,
+                            data={"reported_at": "2026-10-09T09:10:00+00:00", "language": "fr", "description": "x"})
+    tel = ctx["evidence"][0]
+    assert tel["stale"] is True and tel["age_seconds_at_report"] == 10800
+    assert "stale" not in ctx["evidence"][1]
+    monkeypatch.setattr(app.config, "_settings", dataclasses.replace(base, llm_prompt_version=llm.PROMPT_V1))
+    assert "stale" not in llm.build_context(revision=2, manifest_id="mf", equipment={}, evidence=ev, telemetry_max_age_s=3600,
+                                            data={"reported_at": "2026-10-09T09:10:00+00:00", "language": "fr",
+                                                  "description": "x"})["evidence"][0]

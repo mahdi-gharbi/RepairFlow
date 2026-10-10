@@ -29,5 +29,15 @@
         "out_of_scope-03"
       ]
     }
-  ]
+  ],
+  "versions": {
+    "prompt": "triage-llm-2026.10-1",
+    "policy": "policy-2026.10-1",
+    "rules": "rules-2026.10-2",
+    "llm": {
+      "model": "openai/gpt-oss-20b",
+      "provider_host": "api.groq.com"
+    },
+    "note": "added after the run from the deployed configuration (runner did not record versions yet)"
+  }
 }

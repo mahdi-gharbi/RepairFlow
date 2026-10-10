@@ -1,0 +1,27 @@
+{
+  "run_id": "20261010T131909Z",
+  "dataset": "cases_v1.jsonl",
+  "cases": 51,
+  "llm_split": "dev",
+  "throttled_attempts": 0,
+  "wall_s": 1070,
+  "api_user": {
+    "name": "reviewer-demo",
+    "role": "reviewer"
+  },
+  "llm": {
+    "provider": "Groq (OpenAI-compatible)",
+    "model": "see results (model per run)"
+  },
+  "hardware": "client: i7-10510U / 20 GB RAM laptop; inference is remote (provider hardware unknown)",
+  "versions": {
+    "prompt": "triage-llm-2026.10-1",
+    "policy": "policy-2026.10-1",
+    "rules": "rules-2026.10-2",
+    "llm": {
+      "model": "openai/gpt-oss-20b",
+      "provider_host": "api.groq.com"
+    },
+    "note": "added after the run from the deployed configuration (runner did not record versions yet)"
+  }
+}
