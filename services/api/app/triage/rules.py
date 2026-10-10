@@ -9,7 +9,7 @@ from datetime import datetime
 from app.contracts import TriageProposal
 
 ENGINE = "rules"
-RULES_VERSION = "rules-2026.10-2"
+RULES_VERSION = "rules-2026.10-3"
 
 KEYWORDS: dict[str, list[str]] = {
     "battery": [r"batter", r"charg", r"autonomie", r"power", r"alimentation", r"s'?arr[eê]te", r"shut ?down", r"[ée]teint"],
@@ -24,7 +24,7 @@ CLAIMS_BATTERY_FULL = re.compile(
     r"(batterie[^.;]{0,30}(pleine|charg[ée]e|100\s*%)|battery[^.;]{0,30}(full|charged|100\s*%)|full battery|fully charged)",
     re.IGNORECASE,
 )
-CLAIMS_NETWORK_OK = re.compile(r"(r[ée]seau[^.;]{0,20}(ok|fonctionne)|wi-?fi[^.;]{0,20}(ok|works|fine)|network[^.;]{0,20}(ok|fine|works))", re.IGNORECASE)
+CLAIMS_NETWORK_OK = re.compile(r"(r[ée]seau[^.;]{0,20}(ok|fonctionne)|wi-?fi[^.;]{0,20}(ok|works|fine|fonctionne|marche)|network[^.;]{0,20}(ok|fine|works))", re.IGNORECASE)
 
 LOW_BATTERY_PCT = 25
 

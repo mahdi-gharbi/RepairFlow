@@ -1,6 +1,6 @@
 # PROGRESS — RepairFlow
 
-Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-10-10, ~19:40 UTC.
+Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-10-10, ~20:20 UTC.
 
 ## État par milestone
 
@@ -142,7 +142,13 @@ Portable i7-10510U, toute la pile dans Docker, 1 processus uvicorn, worker tick 
   plein (0,14 Go libres)** ; le disque virtuel Docker fait 84 Go (tous projets), et mes rebuilds répétés y ont contribué.
   Libéré de mon côté : Chromium Playwright 1140 (344 Mo) et `.pytest_tmp`. Décision du porteur : il libère lui-même de la place.
 
-**Reprise quand Docker tient debout :**
+**Reprise faite (soir du 10/10)** : le porteur a déplacé le disque Docker sur F: (C: : 98,8 Go libres). Images et volumes
+conservés, DNS des conteneurs rétabli. Rebuild, Chromium réinstallé, **77 tests Python + 3 Playwright verts** (dont les 2 tests
+`finish_reason`). Campagne avec filet : `evaluation/reports/20261010T191106Z` — le filet n'a rien ajouté dans ce passage
+(assurance, pas gain mesuré). Règle réseau corrigée depuis un cas dev (`rules-2026.10-3`) : rappel de contradiction des règles
+sur le dev 0,8 → 1,0 (`reports/20261010T191749Z`).
+
+Procédure de reprise (si besoin à nouveau) :
 ```bash
 docker compose up -d
 cd apps/dashboard && npx playwright install chromium && cd ../..     # navigateur supprimé pour libérer de la place

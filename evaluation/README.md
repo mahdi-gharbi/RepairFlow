@@ -97,6 +97,17 @@ How much to trust this:
   with that author's convention.
 * One run per configuration; no confidence intervals.
 
+## Day 2, evening: deterministic safety net and a rules fix (2026-10-10)
+
+* **Safety net** (`add_rule_contradictions`): contradictions the rules engine proves on the same evidence manifest are added to
+  a model proposal that missed them (marked `[rules]`), then `clarify` is enforced. Motivated by the demo recording, where the
+  real model once missed the flagship contradiction. Run `reports/20261010T191106Z` (dev + test, v2 + post-check + net):
+  test contradiction P/R `llm` 0.833/1.0, `retrieval_llm` 1.0/1.0; clarify P/R 0.867/1.0 and 0.929/1.0; category macro-F1 1.0.
+  **In this run the net added nothing** (the model found every rule-detectable contradiction); the next-step rule fired 5 times.
+  The net is insurance against a known failure, not a measured gain. This was a second look at the test split.
+* **Rules fix from a dev case** (`rules-2026.10-3`): "le wifi fonctionne sur la tablette" was not recognised as a network-OK claim.
+  Rules-only run `reports/20261010T191749Z`: dev contradiction recall 0.8 → 1.0, clarify recall 0.923 → 1.0; test unchanged.
+
 ## Files
 
 `datasets/build_cases.py` → `datasets/cases_v1.jsonl` · `runner/run_eval.py`, `runner/report.py` ·

@@ -107,3 +107,10 @@ def test_prompt_v2_context_marks_stale_telemetry_deterministically(monkeypatch):
     assert "stale" not in llm.build_context(revision=2, manifest_id="mf", equipment={}, evidence=ev, telemetry_max_age_s=3600,
                                             data={"reported_at": "2026-10-09T09:10:00+00:00", "language": "fr",
                                                   "description": "x"})["evidence"][0]
+
+
+def test_french_wifi_claim_contradicts_offline_telemetry():
+    # dev case network_contradiction-02: "le wifi fonctionne sur la tablette" vs network_online=false
+    p = run_rules("Le robot ne reçoit plus de missions alors que le wifi fonctionne sur la tablette.",
+                  {"battery_pct": 70, "network_online": False})
+    assert p.category == "network" and len(p.contradictions) == 1

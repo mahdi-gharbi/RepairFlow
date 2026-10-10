@@ -1,0 +1,363 @@
+{
+  "meta": {
+    "run_id": "20261010T191106Z",
+    "dataset": "cases_v1.jsonl",
+    "cases": 51,
+    "llm_split": "all",
+    "throttled_attempts": 0,
+    "wall_s": 202,
+    "api_user": {
+      "name": "reviewer-demo",
+      "role": "reviewer"
+    },
+    "versions": {
+      "schema": "0004",
+      "policy": "policy-2026.10-1",
+      "rules": "rules-2026.10-2",
+      "prompt": "triage-llm-2026.10-2",
+      "llm": {
+        "configured": true,
+        "model": "openai/gpt-oss-20b",
+        "provider_host": "openrouter.ai",
+        "provider_order": "Groq"
+      }
+    },
+    "llm": {
+      "provider": "Groq (OpenAI-compatible)",
+      "model": "see results (model per run)"
+    },
+    "hardware": "client: i7-10510U / 20 GB RAM laptop; inference is remote (provider hardware unknown)"
+  },
+  "label_status": [
+    "draft-unreviewed"
+  ],
+  "splits": {
+    "dev": {
+      "cases": 24,
+      "configs": {
+        "rules": {
+          "n": 24,
+          "category_macro_f1": 0.76,
+          "category_accuracy": 0.917,
+          "contradiction_detection": {
+            "precision": 1.0,
+            "recall": 0.8,
+            "f1": 0.889,
+            "n": 24
+          },
+          "clarify_when_expected": {
+            "precision": 1.0,
+            "recall": 0.923,
+            "f1": 0.96,
+            "n": 24
+          },
+          "latency_ms_p50": 0
+        },
+        "llm": {
+          "n": 24,
+          "category_macro_f1": 0.921,
+          "category_accuracy": 0.917,
+          "contradiction_detection": {
+            "precision": 1.0,
+            "recall": 0.8,
+            "f1": 0.889,
+            "n": 24
+          },
+          "clarify_when_expected": {
+            "precision": 1.0,
+            "recall": 0.923,
+            "f1": 0.96,
+            "n": 24
+          },
+          "provider_unreachable": 0,
+          "schema_valid_rate_when_reached": 1.0,
+          "when_valid": {
+            "n": 24,
+            "category_macro_f1": 0.921,
+            "category_accuracy": 0.917,
+            "contradiction_detection": {
+              "precision": 1.0,
+              "recall": 0.8,
+              "f1": 0.889,
+              "n": 24
+            },
+            "clarify_when_expected": {
+              "precision": 1.0,
+              "recall": 0.923,
+              "f1": 0.96,
+              "n": 24
+            }
+          },
+          "system_with_fallback": {
+            "n": 24,
+            "category_macro_f1": 0.921,
+            "category_accuracy": 0.917,
+            "contradiction_detection": {
+              "precision": 1.0,
+              "recall": 0.8,
+              "f1": 0.889,
+              "n": 24
+            },
+            "clarify_when_expected": {
+              "precision": 1.0,
+              "recall": 0.923,
+              "f1": 0.96,
+              "n": 24
+            }
+          },
+          "schema_valid_rate": 1.0,
+          "valid_first_attempt_rate": 1.0,
+          "fallback_to_rules": 0,
+          "latency_ms_p50": 940,
+          "latency_ms_p95": 1208,
+          "tokens_mean": 1519.0,
+          "models": [
+            "openai/gpt-oss-20b"
+          ],
+          "served_by": [
+            "Groq"
+          ]
+        },
+        "retrieval_llm": {
+          "n": 24,
+          "category_macro_f1": 0.921,
+          "category_accuracy": 0.917,
+          "contradiction_detection": {
+            "precision": 1.0,
+            "recall": 0.8,
+            "f1": 0.889,
+            "n": 24
+          },
+          "clarify_when_expected": {
+            "precision": 0.846,
+            "recall": 0.846,
+            "f1": 0.846,
+            "n": 24
+          },
+          "provider_unreachable": 0,
+          "schema_valid_rate_when_reached": 1.0,
+          "when_valid": {
+            "n": 24,
+            "category_macro_f1": 0.921,
+            "category_accuracy": 0.917,
+            "contradiction_detection": {
+              "precision": 1.0,
+              "recall": 0.8,
+              "f1": 0.889,
+              "n": 24
+            },
+            "clarify_when_expected": {
+              "precision": 0.846,
+              "recall": 0.846,
+              "f1": 0.846,
+              "n": 24
+            }
+          },
+          "system_with_fallback": {
+            "n": 24,
+            "category_macro_f1": 0.921,
+            "category_accuracy": 0.917,
+            "contradiction_detection": {
+              "precision": 1.0,
+              "recall": 0.8,
+              "f1": 0.889,
+              "n": 24
+            },
+            "clarify_when_expected": {
+              "precision": 0.846,
+              "recall": 0.846,
+              "f1": 0.846,
+              "n": 24
+            }
+          },
+          "schema_valid_rate": 1.0,
+          "valid_first_attempt_rate": 1.0,
+          "fallback_to_rules": 0,
+          "latency_ms_p50": 982,
+          "latency_ms_p95": 1421,
+          "tokens_mean": 2132.0,
+          "models": [
+            "openai/gpt-oss-20b"
+          ],
+          "served_by": [
+            "Groq"
+          ]
+        }
+      },
+      "retrieval": {
+        "n_judged": 20,
+        "recall_at_3": 1.0,
+        "mrr_at_3": 0.9,
+        "no_relevant_doc_cases": 4,
+        "no_relevant_doc_cases_with_hits": 0
+      }
+    },
+    "test": {
+      "cases": 27,
+      "configs": {
+        "rules": {
+          "n": 27,
+          "category_macro_f1": 0.967,
+          "category_accuracy": 0.963,
+          "contradiction_detection": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "n": 27
+          },
+          "clarify_when_expected": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "n": 27
+          },
+          "latency_ms_p50": 0
+        },
+        "llm": {
+          "n": 27,
+          "category_macro_f1": 1.0,
+          "category_accuracy": 1.0,
+          "contradiction_detection": {
+            "precision": 0.833,
+            "recall": 1.0,
+            "f1": 0.909,
+            "n": 27
+          },
+          "clarify_when_expected": {
+            "precision": 0.867,
+            "recall": 1.0,
+            "f1": 0.929,
+            "n": 27
+          },
+          "provider_unreachable": 0,
+          "schema_valid_rate_when_reached": 1.0,
+          "when_valid": {
+            "n": 27,
+            "category_macro_f1": 1.0,
+            "category_accuracy": 1.0,
+            "contradiction_detection": {
+              "precision": 0.833,
+              "recall": 1.0,
+              "f1": 0.909,
+              "n": 27
+            },
+            "clarify_when_expected": {
+              "precision": 0.867,
+              "recall": 1.0,
+              "f1": 0.929,
+              "n": 27
+            }
+          },
+          "system_with_fallback": {
+            "n": 27,
+            "category_macro_f1": 1.0,
+            "category_accuracy": 1.0,
+            "contradiction_detection": {
+              "precision": 0.833,
+              "recall": 1.0,
+              "f1": 0.909,
+              "n": 27
+            },
+            "clarify_when_expected": {
+              "precision": 0.867,
+              "recall": 1.0,
+              "f1": 0.929,
+              "n": 27
+            }
+          },
+          "schema_valid_rate": 1.0,
+          "valid_first_attempt_rate": 0.963,
+          "fallback_to_rules": 0,
+          "latency_ms_p50": 898,
+          "latency_ms_p95": 1479,
+          "tokens_mean": 1635.0,
+          "models": [
+            "openai/gpt-oss-20b"
+          ],
+          "served_by": [
+            "Groq"
+          ]
+        },
+        "retrieval_llm": {
+          "n": 27,
+          "category_macro_f1": 1.0,
+          "category_accuracy": 1.0,
+          "contradiction_detection": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "n": 27
+          },
+          "clarify_when_expected": {
+            "precision": 0.929,
+            "recall": 1.0,
+            "f1": 0.963,
+            "n": 27
+          },
+          "provider_unreachable": 0,
+          "schema_valid_rate_when_reached": 1.0,
+          "when_valid": {
+            "n": 27,
+            "category_macro_f1": 1.0,
+            "category_accuracy": 1.0,
+            "contradiction_detection": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "n": 27
+            },
+            "clarify_when_expected": {
+              "precision": 0.929,
+              "recall": 1.0,
+              "f1": 0.963,
+              "n": 27
+            }
+          },
+          "system_with_fallback": {
+            "n": 27,
+            "category_macro_f1": 1.0,
+            "category_accuracy": 1.0,
+            "contradiction_detection": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "n": 27
+            },
+            "clarify_when_expected": {
+              "precision": 0.929,
+              "recall": 1.0,
+              "f1": 0.963,
+              "n": 27
+            }
+          },
+          "schema_valid_rate": 1.0,
+          "valid_first_attempt_rate": 1.0,
+          "fallback_to_rules": 0,
+          "latency_ms_p50": 891,
+          "latency_ms_p95": 1212,
+          "tokens_mean": 2075.0,
+          "models": [
+            "openai/gpt-oss-20b"
+          ],
+          "served_by": [
+            "Groq"
+          ]
+        }
+      },
+      "retrieval": {
+        "n_judged": 23,
+        "recall_at_3": 1.0,
+        "mrr_at_3": 0.848,
+        "no_relevant_doc_cases": 4,
+        "no_relevant_doc_cases_with_hits": 0
+      }
+    }
+  },
+  "invariants": {
+    "unauthorized_actions": 0,
+    "details": []
+  },
+  "llm_error_kinds": {
+    "schema": 2
+  }
+}
