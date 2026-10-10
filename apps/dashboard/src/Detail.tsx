@@ -152,6 +152,8 @@ function Review({ d, canReview, busy, highlight, cite, run, api, stale }: {
             <span className="pill mute">next step: {p.suggested_next_step}</span>
           </div>
           <p>{p.summary}</p>
+          {(d.review.adjustments ?? []).map((a, i) => (
+            <div key={i} className="banner info small" data-testid="adjustment"><b>Adjusted by rule</b>: {a}</div>))}
           {p.contradictions.map((c, i) => (
             <div key={i} className="banner warn" data-testid="contradiction"><b>Contradiction</b>: {c.claim_a} ↔ {c.claim_b} <Refs refs={c.evidence_refs} cite={cite} /></div>))}
           {p.missing_information.map((m, i) => <div key={i} className="banner info"><b>Missing</b>: {m}</div>)}

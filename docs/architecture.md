@@ -26,7 +26,8 @@ call is read-only inference (no external effect). n8n W1 still orchestrates the 
 ## Flow
 
 ```text
-operator ──POST /webhook/rf-intake (X-Intake-Key)──> n8n W1
+operator ──n8n form /form/rf-report (basic auth)──> W2 ──┐
+operator/system ──POST /webhook/rf-intake (X-Intake-Key)──┴──> n8n W1   (single intake path)
   W1 ──POST /v1/incidents──────────────> API  (INSERT .. ON CONFLICT on (source_scope, event_id))
   W1 ──GET  telemetry-sim──> (available or not) ──POST /evidence/telemetry──> API (new revision)
   W1 ──POST /v1/incidents/{id}/evidence/manuals──> API (full-text retrieval, snapshot, new revision if changed)
@@ -48,11 +49,20 @@ worker ──POST /webhook/rf-dispatch-ticket (X-Dispatch-Key)──> n8n W3
 | Service | Host port |
 |---|---|
 | API, dashboard, fallback review page | 18000 (`/app/`, `/review`, `/docs`) |
-| n8n editor + webhooks | 15678 |
+| n8n editor, webhooks, operator form (`/form/rf-report`) | 15678 |
 | Mailpit UI/API | 18025 |
 | ticket-service | 18081 |
 | telemetry-sim | 18082 |
 | PostgreSQL | 15432 |
+
+## Correlation and retention
+
+* Each incident has a `correlation_id`. W1 and W3/W4 send it as `X-Correlation-Id`; the API logs one JSON line per call
+  (method, path, status, duration, correlation id — never the body), the worker logs it in its dispatch events and the
+  ticket service in its requests. Grepping one id across `docker compose logs` gives the incident's path. Not distributed tracing.
+* n8n prunes its execution history (14 days / 20 000 executions): business state never depends on it.
+* `scripts/diagnostics.py` exports an allow-listed bundle (versions, counts, metrics, event ids/transitions); `scripts/reset_demo.py --yes`
+  clears demo data and keeps configuration.
 
 ## Authentication
 

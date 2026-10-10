@@ -193,3 +193,20 @@ def test_rules_engine_is_used_when_requested_explicitly():
     iid = ready_incident()
     final = incidents.triage(session, uuid.UUID(iid), "pytest", engine="rules")
     assert final.engine == "rules" and PROVIDER.requests == []
+
+
+def test_next_step_is_forced_to_clarify_when_a_contradiction_is_reported():
+    iid = ready_incident()
+
+    def contradiction_but_ticket(schema):
+        ids = schema["properties"]["extracted_facts"]["items"]["properties"]["evidence_refs"]["items"]["enum"]
+        return 200, json.dumps(valid_from_schema(schema, suggested_next_step="prepare_ticket", contradictions=[
+            {"claim_a": "Operator: battery full", "claim_b": "Telemetry: 12 %", "evidence_refs": ids[:2]}]))
+
+    PROVIDER.queue.append(contradiction_but_ticket)
+    final = triage(iid)
+    assert final.engine == "llm" and final.valid
+    assert final.proposal["suggested_next_step"] == "clarify"
+    assert json.loads(final.raw_output)["suggested_next_step"] == "prepare_ticket"   # model output kept as is
+    assert final.params["adjustments"] and "contradiction reported" in final.params["adjustments"][0]
+    assert incident(iid)["review"]["adjustments"] == final.params["adjustments"]

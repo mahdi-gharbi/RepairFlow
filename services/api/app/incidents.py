@@ -249,6 +249,26 @@ def validate_refs(proposal: TriageProposal, allowed: set[str], manifest: str, re
     return errors
 
 
+def enforce_next_step(proposal: dict, evidence: list[dict], reported_at: str, max_age_s: int) -> tuple[dict, list[str]]:
+    """Deterministic consistency check on a model proposal: an open contradiction or unusable telemetry means
+    the reviewer must clarify first, whatever the model suggested. The raw model output is kept unchanged;
+    the adjustment is recorded on the triage run and shown to the reviewer."""
+    reasons = []
+    if proposal["contradictions"]:
+        reasons.append("contradiction reported")
+    telemetry = next((e["content"] for e in reversed(evidence) if e["kind"] == "telemetry"), None)
+    if telemetry is None or not telemetry.get("available"):
+        reasons.append("telemetry unavailable")
+    elif telemetry.get("observed_at"):
+        age = (datetime.fromisoformat(reported_at) - datetime.fromisoformat(telemetry["observed_at"])).total_seconds()
+        if age > max_age_s:
+            reasons.append("telemetry stale")
+    if reasons and proposal["suggested_next_step"] != "clarify":
+        return ({**proposal, "suggested_next_step": "clarify"},
+                [f"suggested_next_step {proposal['suggested_next_step']} -> clarify ({', '.join(reasons)})"])
+    return proposal, []
+
+
 def _run_rules(db: Session, incident: Incident, actor: str) -> TriageRun:
     rev = current_revision(db, incident)
     evidence = evidence_for(db, rev)
@@ -331,17 +351,22 @@ def triage(session_factory, incident_id: uuid.UUID, actor: str, engine: str = "a
         final, previous = None, None
         for n, a in enumerate(attempts, 1):
             errors = list(a.errors)
+            proposal, adjustments = (a.proposal.model_dump(mode="json") if a.proposal else None), []
+            if proposal and not errors:
+                ctx = inputs["context"]
+                proposal, adjustments = enforce_next_step(proposal, ctx["evidence"], ctx["reported_at"],
+                                                          get_settings().telemetry_max_age_s)
             if incident.current_revision != inputs["revision"]:
                 errors.append(f"incident revision changed during inference ({inputs['revision']} -> {incident.current_revision})")
             run = TriageRun(
                 incident_id=incident.id, incident_revision=inputs["revision"], engine=inputs["engine"],
                 model=a.meta.get("model") or get_settings().llm_model, model_digest=a.meta.get("system_fingerprint"),
                 prompt_version=llm.prompt_version(), input_hash=inputs["input_hash"], raw_output=a.raw,
-                proposal=a.proposal.model_dump(mode="json") if a.proposal else None, valid=not errors, errors=errors,
+                proposal=proposal, valid=not errors, errors=errors,
                 duration_ms=a.duration_ms,
                 context={"system": llm.system_prompt(), "user": inputs["context"], "schema": schema} if n == 1
                 else {"repair_of": str(previous.id), "repair_prompt": "validation errors fed back to the model"},
-                params={**llm.params(), "attempt": n, "response": a.meta})
+                params={**llm.params(), "attempt": n, "response": a.meta, "adjustments": adjustments})
             db.add(run)
             db.flush()
             audit.record(db, "triage_completed" if run.valid else "triage_failed", actor, incident_id=incident.id,
@@ -381,6 +406,7 @@ def review_state(db: Session, incident: Incident) -> dict:
     plan = build_plan(incident_id=str(incident.id), revision=rev.revision, proposal=run.proposal,
                       overrides=rev.data["overrides"], equipment=equipment, team=team)
     state.update(proposal=run.proposal, provenance=run.engine, triage_run_id=str(run.id), plan=plan,
+                 adjustments=(run.params or {}).get("adjustments", []),
                  plan_digest=plan_digest(incident_id=str(incident.id), revision=rev.revision, plan=plan,
                                          evidence_versions=state["evidence_versions"]))
     return state

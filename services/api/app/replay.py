@@ -24,7 +24,7 @@ from app.canonical import sha256_hex
 from app.config import get_settings
 from app.contracts import TriageProposal
 from app.errors import Invalid, NotFound
-from app.incidents import evidence_for, validate_refs
+from app.incidents import enforce_next_step, evidence_for, validate_refs
 from app.models import Action, Approval, Equipment, Incident, IncidentRevision, Outbox, Team, TriageRun
 from app.policy import POLICY_VERSION, PRIORITY_BY_CATEGORY, build_plan, plan_digest
 from app.transitions import check_action, check_incident
@@ -170,6 +170,8 @@ def _triage(sb: Sandbox, src: dict, data: dict, evidence: list[dict], revision: 
             sb.log("frozen_llm_output_rejected", errors=errors[:5])
         else:
             proposal, provenance = candidate.model_dump(mode="json"), f"{src['recorded_llm'].engine} (frozen)"
+            proposal, adjusted = enforce_next_step(proposal, evidence, data["reported_at"], get_settings().telemetry_max_age_s)
+            notes += adjusted
             sb.log("frozen_llm_output_accepted", model=src["recorded_llm"].model)
     elif mode == "frozen":
         notes.append("source run has no recorded LLM output; rules engine used")
@@ -187,6 +189,8 @@ def _triage(sb: Sandbox, src: dict, data: dict, evidence: list[dict], revision: 
             sb.log("llm_requeried", attempts=len(attempts), valid=bool(ok))
             if ok:
                 proposal, provenance = ok.proposal.model_dump(mode="json"), f"{'retrieval_llm' if any(e['kind'] == 'manual' for e in evidence) else 'llm'} (requery)"
+                proposal, adjusted = enforce_next_step(proposal, evidence, data["reported_at"], get_settings().telemetry_max_age_s)
+                notes += adjusted
             else:
                 notes += [f"requeried LLM output rejected: {e}" for a in attempts for e in a.errors][:5]
 

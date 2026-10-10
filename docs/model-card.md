@@ -14,10 +14,11 @@
 |---|---|
 | Provider | Groq, OpenAI-compatible `/openai/v1/chat/completions` (**remote**, decided by the project owner instead of a local Ollama model) |
 | Model | `openai/gpt-oss-20b` (fingerprints observed: `fp_34cb00738d`, `fp_565badff47`, …; recorded per run in `triage_runs.model_digest`) |
-| Prompt version | `triage-llm-2026.10-1` (`app/triage/llm.py`, `SYSTEM`) |
+| Prompt version | `triage-llm-2026.10-2` deployed since 2026-10-10 (`RF_LLM_PROMPT_VERSION`); v1 kept side by side in `app/triage/llm.py` `PROMPTS` |
 | Parameters | `temperature=0`, `seed=20261009`, `max_tokens=4000`, `reasoning_effort=low` |
 | Output constraint | `response_format=json_schema, strict=true`, schema built per request: `incident_revision` and `evidence_manifest_id` are single-value enums, every `evidence_refs` item is an enum of the manifest's evidence ids |
 | Server validation | Pydantic `TriageProposal` (`extra="forbid"`), then `validate_refs` (manifest id, revision, every ref ∈ manifest) |
+| Deterministic post-check | `enforce_next_step`: a reported contradiction or unavailable/stale telemetry forces `suggested_next_step=clarify`; raw output kept, adjustment recorded in `triage_runs.params.adjustments` and shown in the review |
 | Failure policy | provider format failure or validation failure → **one** repair turn with the errors; provider unavailable (HTTP error, timeout, 429) → no repair; then **rules engine** fallback. Revision changed during inference → output discarded |
 | Switching back to local | set `RF_LLM_BASE_URL` to an Ollama/OpenAI-compatible endpoint and `RF_LLM_MODEL`; no code change |
 
@@ -50,9 +51,19 @@ hosted model deterministic; that failure class is now treated as a format error 
 
 Latency: 0.8–2.5 s per call observed; ~2–3.4 k tokens per triage. No p50/p95 claimed until the evaluation campaign.
 
+## Prompt v2 (2026-10-10)
+
+Written from the dev-split errors of v1 (over-clarification listing root causes as "missing information", stale telemetry
+read as a contradiction, an out-of-scope report classified as mechanical, `prepare_ticket` despite a contradiction).
+v2 adds explicit next-step criteria, limits `missing_information` to what a reviewer needs before ticketing, and passes a
+deterministic `age_seconds_at_report` / `stale` flag for telemetry. On 10 identical dev cases it removed the
+over-clarification but `retrieval_llm` still suggested `prepare_ticket` with its own contradiction in 3/3 cases — hence the
+deterministic post-check above. The full measurement of v2 + post-check is pending (provider daily quota).
+
 ## Known limits
 
-* Free-tier rate limit: about three triages per minute. Under load most incidents get the rules proposal.
+* Free-tier limits: about three triages per minute and **200 000 tokens per day** (about 80 triages). Beyond that every
+  incident gets the rules proposal — the system keeps working, the evaluation cannot run.
 * Lexical retrieval does not bridge French reports and English manuals; error codes and category expansion do most
   of the work (`app/retrieval`). The error-code boost was tuned on development cases only.
 * A manual section explains what a symptom can mean; the prompt says so, but the model can still over-claim. The

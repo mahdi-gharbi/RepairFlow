@@ -57,6 +57,17 @@ What the disagreements show (`reports/20261009T212922Z/report.md`, per-case tabl
 Not measured: whether each extracted claim is supported by its cited evidence (needs a human rubric; citation ids are
 valid by construction), and energy or cost (remote model, free tier).
 
+## Day 2: dev baseline and prompt v2 (in progress)
+
+* Dev baseline, prompt v1 (`reports/20261010T131909Z`, 24 dev cases): category macro-F1 `llm` 0.921 / `retrieval_llm` 0.958;
+  contradiction P/R 0.833/1.0; clarify P/R 0.565/1.0 and 0.706/0.923 — the over-clarification seen on test is confirmed on dev.
+* Prompt v2 written from dev errors only (`docs/model-card.md`). Partial run `reports/20261010T133820Z` stopped by the provider's
+  daily token limit after 12 dev cases. On the 10 dev cases with valid outputs in both runs: clarify P/R `llm` 0.556/1.0 → 1.0/1.0;
+  `retrieval_llm` 0.667/0.8 → 1.0/0.4 (it suggested `prepare_ticket` while reporting a contradiction, 3/3).
+  A deterministic post-check now forces `clarify` in that situation. **v2 + post-check is not measured yet.**
+* Next: `run_eval.py --llm-split dev` (v2 + post-check), then a single `--llm-split test` run. The test split is no longer fully
+  blind for this comparison: its errors were read on 2026-10-09 before v2 existed.
+
 ## Files
 
 `datasets/build_cases.py` → `datasets/cases_v1.jsonl` · `runner/run_eval.py`, `runner/report.py` ·

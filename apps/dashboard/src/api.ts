@@ -41,7 +41,7 @@ export interface IncidentDetail extends IncidentSummary {
                    notes: { by: string; at: string; note: string }[] };
   evidence: Evidence[];
   review: { revision: number; proposal: Proposal | null; provenance: string | null; plan: PlanStep[] | null;
-            plan_digest: string | null; policy_version: string };
+            plan_digest: string | null; policy_version: string; adjustments?: string[] };
   actions: Action[];
 }
 

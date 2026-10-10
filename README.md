@@ -33,7 +33,8 @@ bash scripts/provision_n8n.sh
 python scripts/demo.py --outage
 ```
 
-Dashboard: <http://127.0.0.1:18000/app/> (token `RF_REVIEWER_TOKEN` or `RF_OPERATOR_TOKEN` from `.env`) · Mailpit: <http://127.0.0.1:18025>
+Dashboard: <http://127.0.0.1:18000/app/> (token `RF_REVIEWER_TOKEN` or `RF_OPERATOR_TOKEN` from `.env`) · Operator form (n8n):
+<http://127.0.0.1:15678/form/rf-report> (`RF_FORM_USER` / `RF_FORM_PASSWORD`) · Mailpit: <http://127.0.0.1:18025>
 
 6. **Replay Lab**: re-run the incident in a sandbox under a fault or another rule ("what if the SMTP response was lost?")
    and compare decisions side by side — without touching the real incident ([`docs/replay-lab.md`](docs/replay-lab.md)).
@@ -62,7 +63,7 @@ report ─> n8n W1 intake ─> FastAPI/PostgreSQL <── reviewer (approve revi
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -r services/api/requirements.txt pytest
-.venv/Scripts/python -m pytest -q tests        # 68 tests: unit, PostgreSQL integration, LLM contract, replay, n8n faults/ops
+.venv/Scripts/python -m pytest -q tests        # 73 tests: unit, PostgreSQL integration, LLM contract, replay, n8n faults/ops
 cd apps/dashboard && npm ci && npx playwright install chromium && npx playwright test   # 3 end-to-end journeys
 ```
 

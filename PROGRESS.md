@@ -1,20 +1,20 @@
 # PROGRESS — RepairFlow
 
-Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-10-09, ~22:10 UTC.
+Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-10-10, ~14:30 UTC.
 
 ## État par milestone
 
 | Milestone | État | Preuve principale |
 |---|---|---|
-| M0 — Environnement et contrats | ✅ | clone propre → `.env` neuf → `compose up --build` → provisioning depuis les exports → démo OK (§4.6) |
+| M0 — Environnement et contrats | ✅ | clone propre → `.env` neuf → `compose up --build` → provisioning depuis les exports → démo OK (§4.7) |
 | M1 — Tranche sans LLM | ✅ | W1/W3/W4 réellement exécutés ; ticket + email vérifiés auprès de ticket-service, Mailpit et `execution_entity` de n8n |
 | M2 — Fiabilité et concurrence | ✅ | 18 tests de fiabilité PostgreSQL + 10 tests de pannes via le vrai n8n ; test de charge documenté (§4.5) |
 | M3 — Preuves et propositions IA | ✅ (LLM **distant** Groq, décision du porteur) | full-text PostgreSQL, citations validées, sorties `gpt-oss-20b` réelles, 14 tests de contrat |
 | M4 — Dashboard, recovery/digest, n8n reproductible | ✅ | dashboard React+TS (SSE, revue versionnée, actions incertaines) ; W0/W5/W6 vérifiés avec de vraies exécutions ; Playwright 3/3 |
 | M5 — Replay Lab et évaluation | ✅ (labels à relire) | 12 scénarios sandbox, 11 tests ; campagne 51 cas, rapport `evaluation/reports/20261009T212922Z` |
-| M6 — Extensions | non commencé | pgvector, OpenTelemetry, vrai connecteur sandbox : facultatifs |
+| M6 — Extensions | décidé : non justifié pour l'instant | `docs/extensions.md` (Recall@3 déjà 1,0 ; corrélation suffit ; connecteurs locaux imposés) |
 
-**Reste avant de considérer V1.1 « présentable »** : relecture humaine des labels, vidéo de démo, révocation de la clé Groq exposée (§6).
+**Reste avant de considérer V1.1 « présentable »** : relecture humaine des labels, mesure du prompt v2 + règle de cohérence (bloquée par le quota quotidien Groq, §4.6), vidéo de démo, révocation de la clé Groq exposée (§6).
 
 ## 1. Audit initial
 
@@ -27,12 +27,12 @@ Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-
 | Composant | Version |
 |---|---|
 | n8n | `docker.n8n.io/n8nio/n8n:2.42.6` (digest `sha256:526daa38b68e…197a9a`) |
-| Nodes n8n (lus dans `n8n-nodes-base/dist`) | Webhook 2, HTTP Request 4.2, Code 2, If 2.2, Respond to Webhook 1.1, Send Email 2.1, Schedule Trigger 1.2, Error Trigger 1 |
+| Nodes n8n (lus dans `n8n-nodes-base/dist`) | Webhook 2, HTTP Request 4.2, Code 2, If 2.2, Respond to Webhook 1.1, Send Email 2.1, Schedule Trigger 1.2, Error Trigger 1, Form Trigger 2.2 |
 | PostgreSQL | `postgres:17-alpine` (n8n 2.42 : PG16 en « compatibility support » seulement) |
 | Mailpit | `axllent/mailpit:v1.31.4` |
 | API/worker | `python:3.12-slim`, FastAPI 0.115.12, SQLAlchemy 2.0.40, psycopg 3.2.6, Alembic 1.15.2, Pydantic 2.11.3 |
 | Dashboard | `node:22.14.0-alpine` (build), React 18.3.1, Vite 5.4.10, TypeScript 5.6.3, Playwright 1.48.2 (Chromium 1140) |
-| LLM (distant) | Groq `openai/gpt-oss-20b`, prompt `triage-llm-2026.10-1`, `temperature=0`, `seed=20261009` |
+| LLM (distant) | Groq `openai/gpt-oss-20b`, prompt `triage-llm-2026.10-2` déployé (v1 conservée), `temperature=0`, `seed=20261009` |
 
 ## 3. Commandes
 
@@ -45,24 +45,27 @@ python scripts/demo.py [--outage]             # scénario de démo via le webhoo
 cd apps/dashboard && npx playwright test      # 3 parcours e2e
 python evaluation/runner/run_eval.py          # campagne d'évaluation (~25 min, limite de débit Groq)
 python scripts/load_test.py                   # test de charge local
+python scripts/diagnostics.py                 # export de diagnostic partageable (liste blanche, scan de secrets)
+python scripts/reset_demo.py --yes            # vide les données de démo (garde équipements, équipes, manuels)
 bash scripts/provision_n8n.sh --from-src      # après modification de scripts/build_workflows.py
 ```
 
+Formulaire opérateur n8n : <http://127.0.0.1:15678/form/rf-report> (`RF_FORM_USER` / `RF_FORM_PASSWORD`).
 Interfaces : dashboard <http://127.0.0.1:18000/app/> (jetons `RF_REVIEWER_TOKEN` / `RF_OPERATOR_TOKEN`), page de secours `/review`,
 OpenAPI `/docs`, Mailpit <http://127.0.0.1:18025>, n8n <http://127.0.0.1:15678> (compte owner à créer soi-même pour l'éditeur).
 
 ## 4. Résultats
 
-### 4.1 Tests (2026-10-09 ~22:05 UTC)
+### 4.1 Tests (2026-10-10 ~14:45 UTC, fournisseur LLM en limite quotidienne → replis règles pendant les tests)
 
 | Suite | Résultat |
 |---|---|
-| `tests/unit` | 9 passed |
-| `tests/integration` (fiabilité 18, contrat LLM 9 avec double local du fournisseur, retrieval 5, replay 11) | 43 passed |
+| `tests/unit` | 10 passed |
+| `tests/integration` (fiabilité 18, contrat LLM 10 avec double local du fournisseur, retrieval 5, replay 11) | 44 passed |
 | `tests/faults` (vrai n8n, worker actif) | 10 passed |
-| `tests/workflow` (W0/W5/W6, SSE, métriques) | 6 passed |
-| **Total pytest** | **68 passed** (6 min 46) |
-| Playwright `apps/dashboard/e2e` | **3 passed** (revue + complétion live, garde-fou révision périmée, rôle opérateur) |
+| `tests/workflow` (W0/W5/W6, SSE, métriques, diagnostic, corrélation, formulaire W2) | 9 passed |
+| **Total pytest** | **73 passed** (12 min 50) |
+| Playwright `apps/dashboard/e2e` | **3 passed** |
 
 ### 4.2 Chaîne M1/M2 (rappel)
 
@@ -91,7 +94,30 @@ Portable i7-10510U, toute la pile dans Docker, 1 processus uvicorn, worker tick 
 * Dispatch : 30 approbations simultanées (60 actions, 60 exécutions n8n) → 30 complétés, approbation→fin p50 22 s, max 25 s (~58 incidents/min).
 * Pas un benchmark : une machine, pas de réplication, valeurs indicatives.
 
-### 4.6 Reproductibilité
+### 4.6 Jour 2 (2026-10-10) — exploitation, formulaire, prompt v2
+
+* **Corrélation** : `X-Correlation-Id` propagé par W1 et W3/W4 vers l'API (journal JSON par requête, sans corps) et le
+  ticket-service ; même valeur retrouvée dans les logs API, worker, ticket-service (test `test_correlation_id_reaches_the_ticket_service`).
+  C'est une corrélation, pas du tracing distribué.
+* **Rétention** : élagage des exécutions n8n (14 jours / 20 000), l'état métier n'en dépend pas. Audit conservé (démo) ;
+  `scripts/reset_demo.py --yes` vide les données métier (testé sur une pile jetable : refus sans `--yes`, incidents/audit → 0,
+  équipements/manuels conservés). `scripts/diagnostics.py` : export en liste blanche, scan de secrets (testé : aucun texte de signalement).
+* **W2 formulaire opérateur** (Form Trigger 2.2, auth basique) → webhook W1 : un seul chemin d'intake. 401 sans identifiants ;
+  soumission réelle → incident trié. Piège trouvé : à partir de la v2.2 le chemin du formulaire se lit dans `options.path`.
+* **Bug trouvé** : `demo.py` plantait quand sa sortie était redirigée (cp1252 sous Windows + texte LLM) → stdout UTF-8 forcé.
+* **Prompt v2** (dev seulement) : référence v1 sur le dev (`evaluation/reports/20261010T131909Z`, 24 cas) : sur-clarification
+  confirmée (clarify P 0,565 / 0,706). v2 = critères de décision explicites + âge/péremption de la télémétrie calculés de façon
+  déterministe. Signal partiel sur 10 cas dev identiques : clarify P/R `llm` 0,556/1,0 → 1,0/1,0, mais `retrieval_llm`
+  0,667/0,8 → 1,0/**0,4** : le modèle propose `prepare_ticket` malgré une contradiction qu'il a lui-même rapportée (3/3 cas).
+  → **règle de cohérence déterministe** (`enforce_next_step`) : contradiction ou télémétrie indisponible/périmée ⇒ `clarify`,
+  sortie brute conservée, ajustement tracé et affiché (« Adjusted by rule »). Testée avec le double du fournisseur ; **pas encore mesurée sur le vrai modèle**.
+* **Quota** : le palier gratuit Groq plafonne à **200 000 tokens/jour** (fenêtre glissante). Atteint à 13:59 UTC
+  (référence dev v1 + moitié de v2). Mesurer « v2 + règle » sur le dev puis une fois sur le test ≈ 250 000 tokens, soit plus
+  d'une journée de quota. Le runner est désormais reprenable (`--resume`) et enregistre les versions (`meta.json`).
+* Contamination déclarée : les erreurs du test avaient été vues lors de la campagne du 09/10 ; v2 a été écrit à partir du dev,
+  mais le test n'est plus parfaitement aveugle pour cette comparaison.
+
+### 4.7 Reproductibilité
 
 Refait le 2026-10-09 ~22:15 UTC après M4/M5 : `git clone` → `.env` neuf **sans clé LLM** → `COMPOSE_PROJECT_NAME=rfclean docker compose up -d --build` (volumes vierges, build multi-étapes du dashboard) → `provision_n8n.sh` (6 workflows réimportés depuis les exports, actifs, scan de secrets propre) → `/app/` 200 → `demo.py` : rejeu 200, contradiction, 409 périmé, `completed`, 1 ticket, 1 email. Provenance `rules` : le système complet fonctionne sans LLM.
 
@@ -108,10 +134,10 @@ Refait le 2026-10-09 ~22:15 UTC après M4/M5 : `git clone` → `.env` neuf **san
 ## 6. Travail restant
 
 1. **Sécurité (porteur)** : révoquer la clé Groq collée dans la conversation et en créer une nouvelle.
-2. **Labels** : relire `evaluation/datasets/cases_v1.jsonl` (surtout « télémétrie périmée = contradiction ? »), compléter vers 60–100 cas avec des formulations écrites par quelqu'un d'autre, relancer `run_eval.py`.
-3. Vidéo de démo 90–120 s (doublon → contradiction → revue versionnée → panne/reprise → timeline → replay).
-4. Qualité LLM : la sur-clarification et le `prepare_ticket` hors sujet sont des pistes de prompt/politique — à traiter sur le split dev seulement.
-5. M6 facultatif : recherche hybride pgvector (comparer à Recall@3/MRR actuels), OpenTelemetry.
+2. **Mesure v2 + règle** : `run_eval.py --llm-split dev` puis, une seule fois, `--llm-split test` (≈ 250 k tokens : 2 jours de palier gratuit, ou un palier payant / un autre fournisseur compatible OpenAI). Décider ensuite de la version par défaut.
+3. **Labels** : relire `evaluation/datasets/cases_v1.jsonl` (surtout « télémétrie périmée = contradiction ? »), compléter vers 60–100 cas avec des formulations écrites par quelqu'un d'autre, relancer `run_eval.py`.
+4. Vidéo de démo 90–120 s (doublon → contradiction → revue versionnée → panne/reprise → timeline → replay).
+5. M6 : seulement si un cas concret le justifie (`docs/extensions.md`).
 
 ## 7. Scénarios à reproduire soi-même (préparation entretien)
 
