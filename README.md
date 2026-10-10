@@ -11,7 +11,7 @@ reconciliation when a provider fails or answers ambiguously.
 **Status (2026-10-09):** milestones M0–M5 done: real n8n workflows (intake, dispatch, recovery, digest, error handler),
 outbox and reconciliation, fault-injection tests, manual retrieval (PostgreSQL full-text), structured LLM proposals with
 a rules fallback, a React dashboard with live updates, an Incident Replay Lab and a first evaluation campaign (draft
-labels, see below). The LLM is a **remote** model (Groq, `openai/gpt-oss-20b`) by the owner's choice; switching to a
+labels, see below). The LLM is a **remote** model (`openai/gpt-oss-20b` via OpenRouter, pinned to the Groq upstream) by the owner's choice; switching to a
 local OpenAI-compatible server (Ollama) is a configuration change. Details: [`PROGRESS.md`](PROGRESS.md). All connectors are local: a fictional ticket service and Mailpit. Fleet, sites and
 teams are fictional.
 

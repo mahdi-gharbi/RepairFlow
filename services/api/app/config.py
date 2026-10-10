@@ -28,6 +28,8 @@ class Settings:
     llm_timeout_s: float = field(default_factory=lambda: float(_env("RF_LLM_TIMEOUT_S", "30")))
     # Empty = the default prompt (see app/triage/llm.py PROMPTS).
     llm_prompt_version: str = field(default_factory=lambda: _env("RF_LLM_PROMPT_VERSION", ""))
+    # OpenRouter only: pin one upstream provider (no fallback) so runs stay comparable, e.g. "Groq".
+    llm_provider_order: str = field(default_factory=lambda: _env("RF_LLM_PROVIDER_ORDER", ""))
 
 
 _settings: Settings | None = None

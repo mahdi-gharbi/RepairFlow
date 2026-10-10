@@ -86,6 +86,7 @@ def config_metrics(rows: list[dict], name: str) -> dict:
             latency_ms_p95=pct([o["duration_ms"] for _, o in outs if o["duration_ms"]], 0.95),
             tokens_mean=round(statistics.mean([o["tokens"] for _, o in outs if o["tokens"]]), 0) if any(o["tokens"] for _, o in outs) else None,
             models=sorted({o.get("model") for _, o in outs if o.get("model")}),
+            served_by=sorted({p for _, o in outs for p in (o.get("served_by") or [])}),
         )
     else:
         m["latency_ms_p50"] = pct([o["duration_ms"] for _, o in outs if o["duration_ms"] is not None], 0.5)

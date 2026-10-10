@@ -11,10 +11,10 @@ Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-
 | M2 — Fiabilité et concurrence | ✅ | 18 tests de fiabilité PostgreSQL + 10 tests de pannes via le vrai n8n ; test de charge documenté (§4.5) |
 | M3 — Preuves et propositions IA | ✅ (LLM **distant** Groq, décision du porteur) | full-text PostgreSQL, citations validées, sorties `gpt-oss-20b` réelles, 14 tests de contrat |
 | M4 — Dashboard, recovery/digest, n8n reproductible | ✅ | dashboard React+TS (SSE, revue versionnée, actions incertaines) ; W0/W5/W6 vérifiés avec de vraies exécutions ; Playwright 3/3 |
-| M5 — Replay Lab et évaluation | ✅ (labels à relire) | 12 scénarios sandbox, 11 tests ; campagne 51 cas, rapport `evaluation/reports/20261009T212922Z` |
+| M5 — Replay Lab et évaluation | ✅ (labels à relire) | 12 scénarios sandbox, 11 tests ; campagnes 51 cas (09/10 v1 ; 10/10 v1 vs v2 + règle sur dev, puis test unique) — `evaluation/README.md` |
 | M6 — Extensions | décidé : non justifié pour l'instant | `docs/extensions.md` (Recall@3 déjà 1,0 ; corrélation suffit ; connecteurs locaux imposés) |
 
-**Reste avant de considérer V1.1 « présentable »** : relecture humaine des labels, mesure du prompt v2 + règle de cohérence (bloquée par le quota quotidien Groq, §4.6), vidéo de démo, révocation de la clé Groq exposée (§6).
+**Reste avant de considérer V1.1 « présentable »** : relecture humaine des labels, vidéo de démo, révocation des clés Groq **et OpenRouter** collées dans la conversation (§6).
 
 ## 1. Audit initial
 
@@ -32,7 +32,7 @@ Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-
 | Mailpit | `axllent/mailpit:v1.31.4` |
 | API/worker | `python:3.12-slim`, FastAPI 0.115.12, SQLAlchemy 2.0.40, psycopg 3.2.6, Alembic 1.15.2, Pydantic 2.11.3 |
 | Dashboard | `node:22.14.0-alpine` (build), React 18.3.1, Vite 5.4.10, TypeScript 5.6.3, Playwright 1.48.2 (Chromium 1140) |
-| LLM (distant) | Groq `openai/gpt-oss-20b`, prompt `triage-llm-2026.10-2` déployé (v1 conservée), `temperature=0`, `seed=20261009` |
+| LLM (distant) | `openai/gpt-oss-20b` via OpenRouter épinglé sur Groq (`served_by` tracé), prompt `triage-llm-2026.10-2` par défaut + règle de cohérence, `temperature=0`, `seed=20261009` |
 
 ## 3. Commandes
 
@@ -116,6 +116,12 @@ Portable i7-10510U, toute la pile dans Docker, 1 processus uvicorn, worker tick 
   d'une journée de quota. Le runner est désormais reprenable (`--resume`) et enregistre les versions (`meta.json`).
 * Contamination déclarée : les erreurs du test avaient été vues lors de la campagne du 09/10 ; v2 a été écrit à partir du dev,
   mais le test n'est plus parfaitement aveugle pour cette comparaison.
+* **Mesure faite le jour même via OpenRouter** (clé fournie par le porteur), épinglé sur Groq, coût total 0,028 $ :
+  dev v1 vs v2 + règle dans des conditions identiques → clarify P `llm` 0,542 → 1,0 (R 1,0 → 0,846), `retrieval_llm`
+  0,722 → 0,923 (R 1,0 → 0,923), contradiction `retrieval_llm` 0,75/0,6 → 1,0/1,0. **v2 + règle adopté** (défaut dans le code).
+  Test unique : clarify P 0,545 → 0,867 (`llm`) et 0,556 → 0,929 (`retrieval_llm`), rappel 1,0 ; macro-F1 catégorie
+  `retrieval_llm` 1,0 → 0,912 (2 cas). La règle n'a corrigé qu'1 run sur 49 sur le dev. Variabilité observée : même prompt v1,
+  rappel de contradiction `retrieval_llm` 1,0 → 0,6 entre deux passages — les écarts d'un ou deux cas sont du bruit.
 
 ### 4.7 Reproductibilité
 
@@ -133,15 +139,8 @@ Refait le 2026-10-09 ~22:15 UTC après M4/M5 : `git clone` → `.env` neuf **san
 
 ## 6. Travail restant
 
-1. **Sécurité (porteur)** : révoquer la clé Groq collée dans la conversation et en créer une nouvelle.
-2. **Mesure v2 + règle** — décision du porteur (2026-10-10) : **attendre le quota gratuit Groq**, même fournisseur et même
-   modèle. Quota libéré à partir du 2026-10-11 ~13:20 UTC (fenêtre glissante de 24 h). Procédure, pile démarrée :
-   ```bash
-   python evaluation/runner/run_eval.py --llm-split dev                                     # v2 + règle sur le dev
-   python evaluation/runner/run_eval.py --retry-unreachable evaluation/reports/<run dev>    # si la limite a coupé le passage
-   python evaluation/runner/run_eval.py --llm-split test                                    # UNE seule fois, après décision sur le dev
-   ```
-   Puis choisir la version par défaut (`RF_LLM_PROMPT_VERSION`) et reporter les chiffres dans `evaluation/README.md` et `docs/model-card.md`.
+1. **Sécurité (porteur)** : révoquer les clés Groq et OpenRouter collées dans la conversation et en créer de nouvelles (à mettre dans `.env` : `GROQ_API_KEY` ou `RF_LLM_API_KEY`).
+2. ~~Mesure v2 + règle~~ : faite le 10/10 via OpenRouter (§4.6). Prochaine mesure : après relecture des labels, avec plusieurs passages par configuration pour estimer la variabilité.
 3. **Labels** : relire `evaluation/datasets/cases_v1.jsonl` (surtout « télémétrie périmée = contradiction ? »), compléter vers 60–100 cas avec des formulations écrites par quelqu'un d'autre, relancer `run_eval.py`.
 4. Vidéo de démo 90–120 s (doublon → contradiction → revue versionnée → panne/reprise → timeline → replay).
 5. M6 : seulement si un cas concret le justifie (`docs/extensions.md`).

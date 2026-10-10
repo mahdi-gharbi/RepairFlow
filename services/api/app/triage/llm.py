@@ -54,7 +54,7 @@ PROMPTS = {PROMPT_V1: SYSTEM_V1, PROMPT_V2: SYSTEM_V2}
 
 
 def prompt_version() -> str:
-    v = get_settings().llm_prompt_version or PROMPT_V1
+    v = get_settings().llm_prompt_version or PROMPT_V2  # adopted 2026-10-10 after the dev comparison
     if v not in PROMPTS:
         raise RuntimeError(f"unknown RF_LLM_PROMPT_VERSION {v!r}; known: {sorted(PROMPTS)}")
     return v
@@ -145,8 +145,16 @@ def build_context(*, revision: int, manifest_id: str, equipment: dict, data: dic
 def params() -> dict:
     s = get_settings()
     p = {"model": s.llm_model, "temperature": 0, "seed": 20261009, "max_tokens": 4000}
+    openrouter = "openrouter.ai" in s.llm_base_url
     if s.llm_model.startswith("openai/gpt-oss"):
-        p["reasoning_effort"] = "low"
+        if openrouter:
+            p["reasoning"] = {"effort": "low"}
+        else:
+            p["reasoning_effort"] = "low"
+    if openrouter and s.llm_provider_order:
+        # One upstream provider, no silent fallback, and only providers honouring response_format/seed.
+        p["provider"] = {"order": [x.strip() for x in s.llm_provider_order.split(",")], "allow_fallbacks": False,
+                         "require_parameters": True}
     return p
 
 
@@ -168,7 +176,8 @@ def _call(messages: list[dict], schema: dict) -> tuple[str, dict]:
         raise RuntimeError(f"provider HTTP {r.status_code}: {_redact(r.text)[:300]}")
     d = r.json()
     meta = {"model": d.get("model"), "system_fingerprint": d.get("system_fingerprint"), "usage": d.get("usage"),
-            "finish_reason": d["choices"][0].get("finish_reason")}
+            "finish_reason": d["choices"][0].get("finish_reason"),
+            "served_by": d.get("provider") or s.llm_base_url.split("/")[2]}  # OpenRouter names the upstream provider
     return d["choices"][0]["message"].get("content") or "", meta
 
 

@@ -57,16 +57,45 @@ What the disagreements show (`reports/20261009T212922Z/report.md`, per-case tabl
 Not measured: whether each extracted claim is supported by its cited evidence (needs a human rubric; citation ids are
 valid by construction), and energy or cost (remote model, free tier).
 
-## Day 2: dev baseline and prompt v2 (in progress)
+## Day 2: prompt v2 + deterministic post-check (2026-10-10)
 
-* Dev baseline, prompt v1 (`reports/20261010T131909Z`, 24 dev cases): category macro-F1 `llm` 0.921 / `retrieval_llm` 0.958;
-  contradiction P/R 0.833/1.0; clarify P/R 0.565/1.0 and 0.706/0.923 — the over-clarification seen on test is confirmed on dev.
-* Prompt v2 written from dev errors only (`docs/model-card.md`). Partial run `reports/20261010T133820Z` stopped by the provider's
-  daily token limit after 12 dev cases. On the 10 dev cases with valid outputs in both runs: clarify P/R `llm` 0.556/1.0 → 1.0/1.0;
-  `retrieval_llm` 0.667/0.8 → 1.0/0.4 (it suggested `prepare_ticket` while reporting a contradiction, 3/3).
-  A deterministic post-check now forces `clarify` in that situation. **v2 + post-check is not measured yet.**
-* Next: `run_eval.py --llm-split dev` (v2 + post-check), then a single `--llm-split test` run. The test split is no longer fully
-  blind for this comparison: its errors were read on 2026-10-09 before v2 existed.
+All runs below: same model `openai/gpt-oss-20b`, called through **OpenRouter pinned to the Groq upstream** (no fallback,
+`require_parameters`; every run recorded `served_by: Groq`). The 09/10 v1 runs used Groq directly — same upstream,
+different account/route. Cost of the three runs: USD 0.028.
+
+**Dev split (24 cases), v1 vs v2 + post-check, identical conditions** (`reports/20261010T143707Z` vs `reports/20261010T143914Z`):
+
+| config | category macro-F1 | contradiction P / R | clarify P / R |
+|---|---|---|---|
+| llm v1 | 0.921 | 0.714 / 1.0 | 0.542 / 1.0 |
+| llm v2 | 0.921 | 0.8 / 0.8 | 1.0 / 0.846 |
+| retrieval_llm v1 | 0.958 | 0.75 / 0.6 | 0.722 / 1.0 |
+| retrieval_llm v2 | 0.958 | 1.0 / 1.0 | 0.923 / 0.923 |
+
+Decision taken on dev: adopt v2 + post-check (over-clarification removed; one fewer `llm` contradiction found). The post-check
+changed the model's next step in 1 of 49 valid dev runs; most of the gain comes from the prompt.
+
+**Test split (27 cases), single run of v2 + post-check** (`reports/20261010T144107Z`), next to the 09/10 v1 test run:
+
+| config | category macro-F1 | contradiction P / R | clarify P / R |
+|---|---|---|---|
+| rules | 0.967 | 1.0 / 1.0 | 1.0 / 1.0 |
+| llm v1 (09/10) | 1.0 | 0.714 / 1.0 | 0.545 / 0.923 |
+| llm v2 | 1.0 | 0.714 / 1.0 | 0.867 / 1.0 |
+| retrieval_llm v1 (09/10) | 1.0 | 0.714 / 1.0 | 0.556 / 0.769 |
+| retrieval_llm v2 | 0.912 | 0.833 / 1.0 | 0.929 / 1.0 |
+
+Schema valid 27/27 for both LLM configurations; 0 unauthorized actions. Remaining errors: stale telemetry still read as a
+contradiction even with the deterministic `stale` flag (the post-check still forces `clarify`); `retrieval_llm` put one
+injection case in `sensor` and one stale case in `other`.
+
+How much to trust this:
+* **Run-to-run variability is large.** The same v1 prompt on dev moved `retrieval_llm` contradiction recall from 1.0 (Groq
+  direct, 10/10 13:19) to 0.6 (OpenRouter→Groq, 14:37). Differences of one or two cases are within that noise.
+* **The test split was not blind** to v2's motivation: its v1 errors were read on 09/10. v2 was written from dev errors only.
+* **Labels are still unreviewed drafts** by the same author as the rules engine, and on stale telemetry v2 aligns the model
+  with that author's convention.
+* One run per configuration; no confidence intervals.
 
 ## Files
 

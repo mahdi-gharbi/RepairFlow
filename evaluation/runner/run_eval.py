@@ -13,6 +13,7 @@ tokens-per-minute limit; throttled attempts are retried and counted separately.
 """
 import argparse
 import json
+import os
 import pathlib
 import sys
 import time
@@ -26,7 +27,7 @@ ENV = dict(l.split("=", 1) for l in (ROOT / ".env").read_text().splitlines() if 
 API = "http://127.0.0.1:18000"
 INTERNAL = {"X-RepairFlow-Internal": ENV["RF_INTERNAL_KEY"]}
 REVIEWER = {"Authorization": f"Bearer {ENV['RF_REVIEWER_TOKEN']}"}
-TPM_BUDGET = 6500  # stay under the free-tier 8000 tokens/minute
+TPM_BUDGET = int(os.environ.get("RF_EVAL_TPM", "6500"))  # default stays under Groq's free-tier 8000 tokens/minute
 UNREACHABLE = ("ConnectError", "ConnectTimeout", "ReadTimeout", "HTTP 429", "provider HTTP 5")
 
 
@@ -111,6 +112,7 @@ def pick(runs: list[dict], *engines: str) -> dict:
     return {"proposal": valid and valid["proposal"], "valid": bool(valid), "valid_first_attempt": bool(chain and chain[0]["valid"]),
             "attempts": len(chain), "fallback": not valid, "errors": [e for r in chain for e in r["errors"]][:4],
             "duration_ms": sum(r["duration_ms"] for r in chain) if chain else None, "model": chain[0]["model"] if chain else None,
+            "served_by": sorted({((r.get("params") or {}).get("response") or {}).get("served_by") or "?" for r in chain}),
             "tokens": sum(((r.get("params") or {}).get("response") or {}).get("usage", {}).get("total_tokens", 0) or 0 for r in chain)}
 
 
