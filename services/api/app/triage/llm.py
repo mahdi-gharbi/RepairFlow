@@ -178,7 +178,14 @@ def _call(messages: list[dict], schema: dict) -> tuple[str, dict]:
     meta = {"model": d.get("model"), "system_fingerprint": d.get("system_fingerprint"), "usage": d.get("usage"),
             "finish_reason": d["choices"][0].get("finish_reason"),
             "served_by": d.get("provider") or s.llm_base_url.split("/")[2]}  # OpenRouter names the upstream provider
-    return d["choices"][0]["message"].get("content") or "", meta
+    content = d["choices"][0]["message"].get("content") or ""
+    # Observed on OpenRouter: HTTP 200 with finish_reason "error" and no content = upstream failure, not a format
+    # problem, so no repair attempt. "length" = truncated generation, a format failure eligible for the repair.
+    if meta["finish_reason"] == "error":
+        raise RuntimeError(f"provider finish_reason=error (served by {meta['served_by']})")
+    if meta["finish_reason"] == "length":
+        raise ProviderFormatError("generation truncated (finish_reason=length)", content)
+    return content, meta
 
 
 def run(context: dict, schema: dict, validate) -> list[Attempt]:

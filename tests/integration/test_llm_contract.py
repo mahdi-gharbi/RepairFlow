@@ -54,9 +54,10 @@ class Handler(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         PROVIDER.requests.append(body)
         schema = body["response_format"]["json_schema"]["schema"]
-        status, content = PROVIDER.queue.pop(0)(schema) if PROVIDER.queue else (500, None)
+        result = PROVIDER.queue.pop(0)(schema) if PROVIDER.queue else (500, None)
+        status, content, finish = result if len(result) == 3 else (*result, "stop")
         payload = ({"model": "double-model", "system_fingerprint": "fp_double", "usage": {"total_tokens": 1},
-                    "choices": [{"finish_reason": "stop", "message": {"content": content}}]}
+                    "choices": [{"finish_reason": finish, "message": {"content": content}}]}
                    if status == 200 else {"error": {"message": "double failure"}})
         data = json.dumps(payload).encode()
         self.send_response(status)
@@ -210,3 +211,45 @@ def test_next_step_is_forced_to_clarify_when_a_contradiction_is_reported():
     assert json.loads(final.raw_output)["suggested_next_step"] == "prepare_ticket"   # model output kept as is
     assert final.params["adjustments"] and "contradiction reported" in final.params["adjustments"][0]
     assert incident(iid)["review"]["adjustments"] == final.params["adjustments"]
+
+
+def test_rules_safety_net_adds_a_contradiction_the_model_missed():
+    iid = ready_incident()  # "batterie annoncée pleine" vs telemetry battery_pct=12: rules detect it
+    PROVIDER.queue.append(ok(suggested_next_step="prepare_ticket", contradictions=[]))
+    final = triage(iid)
+    assert final.engine == "llm" and final.valid
+    assert len(final.proposal["contradictions"]) == 1 and final.proposal["contradictions"][0]["claim_a"].endswith("[rules]")
+    assert final.proposal["suggested_next_step"] == "clarify"
+    assert json.loads(final.raw_output)["contradictions"] == []          # model output kept as is
+    adj = final.params["adjustments"]
+    assert adj[0].startswith("contradiction added by rules") and "contradiction reported" in adj[1]
+
+
+def test_safety_net_does_not_duplicate_a_contradiction_the_model_found():
+    iid = ready_incident()
+
+    def found(schema):
+        ids = schema["properties"]["extracted_facts"]["items"]["properties"]["evidence_refs"]["items"]["enum"]
+        return 200, json.dumps(valid_from_schema(schema, suggested_next_step="clarify", contradictions=[
+            {"claim_a": "Operator: battery full", "claim_b": "Telemetry: 12 %", "evidence_refs": ids[:2]}]))
+
+    PROVIDER.queue.append(found)
+    final = triage(iid)
+    assert len(final.proposal["contradictions"]) == 1 and final.params["adjustments"] == []
+
+
+
+def test_upstream_finish_reason_error_is_a_provider_failure_without_repair():
+    iid = ready_incident()
+    PROVIDER.queue.append(lambda s: (200, "", "error"))   # observed on OpenRouter: HTTP 200, empty content
+    final = triage(iid)
+    assert final.engine == "rules"
+    assert len(PROVIDER.requests) == 1                     # no repair prompt for an upstream failure
+    assert "finish_reason=error" in [r for r in runs(iid) if r.engine == "llm"][-1].errors[0]
+
+
+def test_truncated_generation_gets_the_single_repair():
+    iid = ready_incident()
+    PROVIDER.queue += [lambda s: (200, '{"category": "batt', "length"), ok()]
+    final = triage(iid)
+    assert final.engine == "llm" and final.valid and final.params["attempt"] == 2

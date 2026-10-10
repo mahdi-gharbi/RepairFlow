@@ -24,7 +24,7 @@ from app.canonical import sha256_hex
 from app.config import get_settings
 from app.contracts import TriageProposal
 from app.errors import Invalid, NotFound
-from app.incidents import enforce_next_step, evidence_for, validate_refs
+from app.incidents import add_rule_contradictions, enforce_next_step, evidence_for, validate_refs
 from app.models import Action, Approval, Equipment, Incident, IncidentRevision, Outbox, Team, TriageRun
 from app.policy import POLICY_VERSION, PRIORITY_BY_CATEGORY, build_plan, plan_digest
 from app.transitions import check_action, check_incident
@@ -158,6 +158,24 @@ def _triage(sb: Sandbox, src: dict, data: dict, evidence: list[dict], revision: 
         except ValueError:
             pass
 
+    message = next(e for e in evidence if e["kind"] == "message")
+    telemetry = next((e for e in reversed(evidence) if e["kind"] == "telemetry"), None)
+    rules_p = rules.run(
+        incident_id=str(src["incident"].id), equipment_id=src["incident"].equipment_id, revision=revision,
+        data={**data, "category_override": data.get("overrides", {}).get("category")}, message_ref=message["id"],
+        telemetry=telemetry["content"] if telemetry else None, telemetry_ref=telemetry["id"] if telemetry else None,
+        manifest_id=manifest, reported_at=datetime.fromisoformat(data["reported_at"]),
+        max_age_s=get_settings().telemetry_max_age_s,
+        manuals=[(e["id"], e["source_version"], e["content"]) for e in evidence if e["kind"] == "manual"],
+    ).model_dump(mode="json")
+
+    def checked(model_proposal: dict) -> dict:
+        """Same deterministic safety net and next-step rule as live triage."""
+        out, adjusted = add_rule_contradictions(model_proposal, rules_p["contradictions"])
+        out, more = enforce_next_step(out, evidence, data["reported_at"], get_settings().telemetry_max_age_s)
+        notes.extend(adjusted + more)
+        return out
+
     proposal, provenance = None, None
     if mode == "frozen" and raw:
         try:
@@ -169,9 +187,7 @@ def _triage(sb: Sandbox, src: dict, data: dict, evidence: list[dict], revision: 
             notes += [f"recorded LLM output rejected: {e}" for e in errors[:5]]
             sb.log("frozen_llm_output_rejected", errors=errors[:5])
         else:
-            proposal, provenance = candidate.model_dump(mode="json"), f"{src['recorded_llm'].engine} (frozen)"
-            proposal, adjusted = enforce_next_step(proposal, evidence, data["reported_at"], get_settings().telemetry_max_age_s)
-            notes += adjusted
+            proposal, provenance = checked(candidate.model_dump(mode="json")), f"{src['recorded_llm'].engine} (frozen)"
             sb.log("frozen_llm_output_accepted", model=src["recorded_llm"].model)
     elif mode == "frozen":
         notes.append("source run has no recorded LLM output; rules engine used")
@@ -188,24 +204,13 @@ def _triage(sb: Sandbox, src: dict, data: dict, evidence: list[dict], revision: 
             ok = next((a for a in attempts if not a.errors), None)
             sb.log("llm_requeried", attempts=len(attempts), valid=bool(ok))
             if ok:
-                proposal, provenance = ok.proposal.model_dump(mode="json"), f"{'retrieval_llm' if any(e['kind'] == 'manual' for e in evidence) else 'llm'} (requery)"
-                proposal, adjusted = enforce_next_step(proposal, evidence, data["reported_at"], get_settings().telemetry_max_age_s)
-                notes += adjusted
+                proposal = checked(ok.proposal.model_dump(mode="json"))
+                provenance = f"{'retrieval_llm' if any(e['kind'] == 'manual' for e in evidence) else 'llm'} (requery)"
             else:
                 notes += [f"requeried LLM output rejected: {e}" for a in attempts for e in a.errors][:5]
 
     if proposal is None:
-        message = next(e for e in evidence if e["kind"] == "message")
-        telemetry = next((e for e in reversed(evidence) if e["kind"] == "telemetry"), None)
-        proposal = rules.run(
-            incident_id=str(src["incident"].id), equipment_id=src["incident"].equipment_id, revision=revision,
-            data={**data, "category_override": data.get("overrides", {}).get("category")}, message_ref=message["id"],
-            telemetry=telemetry["content"] if telemetry else None, telemetry_ref=telemetry["id"] if telemetry else None,
-            manifest_id=manifest, reported_at=datetime.fromisoformat(data["reported_at"]),
-            max_age_s=get_settings().telemetry_max_age_s,
-            manuals=[(e["id"], e["source_version"], e["content"]) for e in evidence if e["kind"] == "manual"],
-        ).model_dump(mode="json")
-        provenance = "rules"
+        proposal, provenance = rules_p, "rules"
         sb.log("rules_triage", category=proposal["category"])
     return proposal, provenance, notes
 

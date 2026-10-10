@@ -10,3 +10,5 @@ artifacts/demo/*.local.*
 .pytest_tmp/
 test-results/
 playwright-report/
+compose.override.yaml
+artifacts/demo/*.webm

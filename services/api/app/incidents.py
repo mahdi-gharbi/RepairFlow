@@ -269,24 +269,43 @@ def enforce_next_step(proposal: dict, evidence: list[dict], reported_at: str, ma
     return proposal, []
 
 
+def rules_proposal(incident: Incident, rev: IncidentRevision, evidence: list[EvidenceSnapshot]) -> TriageProposal:
+    message = next(e for e in evidence if e.kind == "message")
+    telemetry = next((e for e in reversed(evidence) if e.kind == "telemetry"), None)
+    return rules.run(
+        incident_id=str(incident.id), equipment_id=incident.equipment_id, revision=rev.revision, data={
+            **rev.data, "category_override": rev.data["overrides"].get("category")},
+        message_ref=message.id, telemetry=telemetry.content if telemetry else None,
+        telemetry_ref=telemetry.id if telemetry else None, manifest_id=manifest_id(evidence),
+        reported_at=datetime.fromisoformat(rev.data["reported_at"]), max_age_s=get_settings().telemetry_max_age_s,
+        manuals=[(e.id, e.source_version, e.content) for e in evidence if e.kind == "manual"])
+
+
+def add_rule_contradictions(proposal: dict, rules_contradictions: list[dict]) -> tuple[dict, list[str]]:
+    """Deterministic safety net: a contradiction the rules engine detects (same evidence manifest) and the model
+    missed is added to the model proposal, marked as coming from the rules. The model can add contradictions;
+    it cannot remove one the rules can prove."""
+    added, adjustments = [], []
+    for rc in rules_contradictions:
+        covered = any(set(rc["evidence_refs"]) <= set(c["evidence_refs"]) for c in proposal["contradictions"])
+        if not covered:
+            added.append({**rc, "claim_a": rc["claim_a"] + " [rules]"})
+            adjustments.append(f"contradiction added by rules: {rc['claim_a']} / {rc['claim_b']}")
+    if not added:
+        return proposal, []
+    return {**proposal, "contradictions": proposal["contradictions"] + added}, adjustments
+
+
 def _run_rules(db: Session, incident: Incident, actor: str) -> TriageRun:
     rev = current_revision(db, incident)
     evidence = evidence_for(db, rev)
-    message = next(e for e in evidence if e.kind == "message")
-    telemetry = next((e for e in reversed(evidence) if e.kind == "telemetry"), None)
     mf = manifest_id(evidence)
     started = time.monotonic()
     input_hash = sha256_hex({"revision": rev.data, "evidence": evidence_versions(evidence)})
     run = TriageRun(incident_id=incident.id, incident_revision=rev.revision, engine=rules.ENGINE,
                     prompt_version=rules.RULES_VERSION, input_hash=input_hash, valid=False, errors=[], duration_ms=0)
     try:
-        proposal = rules.run(
-            incident_id=str(incident.id), equipment_id=incident.equipment_id, revision=rev.revision, data={
-                **rev.data, "category_override": rev.data["overrides"].get("category")},
-            message_ref=message.id, telemetry=telemetry.content if telemetry else None,
-            telemetry_ref=telemetry.id if telemetry else None, manifest_id=mf,
-            reported_at=datetime.fromisoformat(rev.data["reported_at"]), max_age_s=get_settings().telemetry_max_age_s,
-            manuals=[(e.id, e.source_version, e.content) for e in evidence if e.kind == "manual"])
+        proposal = rules_proposal(incident, rev, evidence)
         errors = validate_refs(proposal, {e.id for e in evidence}, mf, rev.revision)
         run.proposal = proposal.model_dump(mode="json")
         run.valid, run.errors = not errors, errors
@@ -352,10 +371,14 @@ def triage(session_factory, incident_id: uuid.UUID, actor: str, engine: str = "a
         for n, a in enumerate(attempts, 1):
             errors = list(a.errors)
             proposal, adjustments = (a.proposal.model_dump(mode="json") if a.proposal else None), []
-            if proposal and not errors:
+            if proposal and not errors and incident.current_revision == inputs["revision"]:
                 ctx = inputs["context"]
-                proposal, adjustments = enforce_next_step(proposal, ctx["evidence"], ctx["reported_at"],
-                                                          get_settings().telemetry_max_age_s)
+                rev = current_revision(db, incident)
+                rules_p = rules_proposal(incident, rev, evidence_for(db, rev)).model_dump(mode="json")
+                proposal, adjustments = add_rule_contradictions(proposal, rules_p["contradictions"])
+                proposal, more = enforce_next_step(proposal, ctx["evidence"], ctx["reported_at"],
+                                                   get_settings().telemetry_max_age_s)
+                adjustments += more
             if incident.current_revision != inputs["revision"]:
                 errors.append(f"incident revision changed during inference ({inputs['revision']} -> {incident.current_revision})")
             run = TriageRun(
