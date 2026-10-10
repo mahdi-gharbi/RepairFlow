@@ -134,7 +134,14 @@ Refait le 2026-10-09 ~22:15 UTC après M4/M5 : `git clone` → `.env` neuf **san
 ## 6. Travail restant
 
 1. **Sécurité (porteur)** : révoquer la clé Groq collée dans la conversation et en créer une nouvelle.
-2. **Mesure v2 + règle** : `run_eval.py --llm-split dev` puis, une seule fois, `--llm-split test` (≈ 250 k tokens : 2 jours de palier gratuit, ou un palier payant / un autre fournisseur compatible OpenAI). Décider ensuite de la version par défaut.
+2. **Mesure v2 + règle** — décision du porteur (2026-10-10) : **attendre le quota gratuit Groq**, même fournisseur et même
+   modèle. Quota libéré à partir du 2026-10-11 ~13:20 UTC (fenêtre glissante de 24 h). Procédure, pile démarrée :
+   ```bash
+   python evaluation/runner/run_eval.py --llm-split dev                                     # v2 + règle sur le dev
+   python evaluation/runner/run_eval.py --retry-unreachable evaluation/reports/<run dev>    # si la limite a coupé le passage
+   python evaluation/runner/run_eval.py --llm-split test                                    # UNE seule fois, après décision sur le dev
+   ```
+   Puis choisir la version par défaut (`RF_LLM_PROMPT_VERSION`) et reporter les chiffres dans `evaluation/README.md` et `docs/model-card.md`.
 3. **Labels** : relire `evaluation/datasets/cases_v1.jsonl` (surtout « télémétrie périmée = contradiction ? »), compléter vers 60–100 cas avec des formulations écrites par quelqu'un d'autre, relancer `run_eval.py`.
 4. Vidéo de démo 90–120 s (doublon → contradiction → revue versionnée → panne/reprise → timeline → replay).
 5. M6 : seulement si un cas concret le justifie (`docs/extensions.md`).
