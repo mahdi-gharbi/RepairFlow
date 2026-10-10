@@ -26,6 +26,8 @@ class Settings:
     llm_model: str = field(default_factory=lambda: _env("RF_LLM_MODEL", ""))
     llm_api_key: str = field(default_factory=lambda: _env("RF_LLM_API_KEY", ""))
     llm_timeout_s: float = field(default_factory=lambda: float(_env("RF_LLM_TIMEOUT_S", "30")))
+    # Empty = the default prompt (see app/triage/llm.py PROMPTS).
+    llm_prompt_version: str = field(default_factory=lambda: _env("RF_LLM_PROMPT_VERSION", ""))
 
 
 _settings: Settings | None = None

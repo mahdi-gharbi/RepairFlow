@@ -20,6 +20,7 @@ CRED = {
     "internal": {"httpHeaderAuth": {"id": "rfCredInternalK1", "name": "RF Internal API"}},
     "ticket": {"httpHeaderAuth": {"id": "rfCredTicketKey1", "name": "RF Ticket API"}},
     "smtp": {"smtp": {"id": "rfCredMailpitSm1", "name": "RF Mailpit SMTP"}},
+    "form": {"httpBasicAuth": {"id": "rfCredOperForm01", "name": "RF Operator Form"}},
 }
 
 
@@ -284,9 +285,53 @@ w6 = workflow("RFw06Digest00001", "RF 06 Daily digest", [
         ("Reserve digest", "Not sent yet?", 0), ("Not sent yet?", "Send digest", 0), ("Send digest", "Mark sent", 0)))
 
 
+# --- W2 operator form ---------------------------------------------------------------------------
+
+W2 = "02_operator_form"
+FLEET = json.loads((ROOT / "data" / "equipment" / "equipment.json").read_text(encoding="utf-8"))["equipment"]
+FORM_TO_REPORT_JS = r"""
+// The form only collects the report; W1 owns intake (validation, idempotency, enrichment, triage).
+// One submission = one event: a double click creates two events (documented limit of a plain form).
+const f = $input.first().json;
+const pick = (...names) => names.map((n) => f[n]).find((v) => v !== undefined && v !== '');
+return [{ json: {
+  event_id: `form-${$execution.id}`,
+  equipment_id: String(pick('equipment_id', 'Equipment') || '').split(' ')[0],
+  reported_at: new Date().toISOString().slice(0, 19) + 'Z',
+  language: pick('language', 'Language') || 'fr',
+  description: pick('description', 'What happened?'),
+  operator_reference: pick('operator_reference', 'Your operator reference') || undefined,
+} }];
+"""
+w2 = workflow("RFw02OperForm001", "RF 02 Operator report form", [
+    {"id": nid(W2, "Operator form"), "name": "Operator form", "type": "n8n-nodes-base.formTrigger", "typeVersion": 2.2,
+     "position": [0, 300], "webhookId": nid(W2, "form:rf-report"), "credentials": CRED["form"],
+     "parameters": {
+         # Form Trigger >= 2.2 reads its URL segment from options.path (read in FormTriggerV2.node.js).
+         "authentication": "basicAuth", "formTitle": "Report an equipment problem",
+         "formDescription": "Fictional demo fleet. Describe what you observed; a reviewer checks it before any ticket is created.",
+         "formFields": {"values": [
+             {"fieldLabel": "Equipment", "fieldName": "equipment_id", "fieldType": "dropdown", "requiredField": True,
+              "fieldOptions": {"values": [{"option": f"{e['id']} ({e['display_name']}, {e['site']})"} for e in FLEET]}},
+             {"fieldLabel": "Language", "fieldName": "language", "fieldType": "dropdown", "requiredField": True,
+              "fieldOptions": {"values": [{"option": "fr"}, {"option": "en"}]}},
+             {"fieldLabel": "What happened?", "fieldName": "description", "fieldType": "textarea", "requiredField": True},
+             {"fieldLabel": "Your operator reference", "fieldName": "operator_reference", "fieldType": "text",
+              "placeholder": "operator-demo-1"},
+         ]},
+         "responseMode": "onReceived",
+         "options": {"respondWithOptions": {"values": {"respondWith": "text",
+                     "formSubmittedText": "Report received. A reviewer will check it before any ticket is created."}},
+                     "appendAttribution": False, "path": "rf-report"}}},
+    code(W2, "Build report", FORM_TO_REPORT_JS, [240, 300]),
+    http(W2, "Send to intake", "POST", "http://n8n:5678/webhook/rf-intake", [460, 300], cred="intake", strict=True,
+         body="={{ JSON.stringify($json) }}", timeout=120000),
+], link(("Operator form", "Build report", 0), ("Build report", "Send to intake", 0)))
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for fname, wf in (("00_error_handler.json", w0), ("01_intake.json", w1), ("03_dispatch_ticket.json", w3),
+    for fname, wf in (("00_error_handler.json", w0), ("01_intake.json", w1), ("02_operator_form.json", w2), ("03_dispatch_ticket.json", w3),
                       ("04_dispatch_notification.json", w4), ("05_recovery.json", w5), ("06_digest.json", w6)):
         (OUT / fname).write_text(json.dumps(wf, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         print("wrote", OUT / fname)

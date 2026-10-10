@@ -14,6 +14,7 @@ x-python-env: &python-env
   RF_LLM_BASE_URL: ${RF_LLM_BASE_URL:-https://api.groq.com/openai/v1}
   RF_LLM_MODEL: ${RF_LLM_MODEL:-openai/gpt-oss-20b}
   RF_LLM_API_KEY: ${GROQ_API_KEY:-}
+  RF_LLM_PROMPT_VERSION: ${RF_LLM_PROMPT_VERSION:-}
 
 services:
   postgres:

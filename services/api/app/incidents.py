@@ -336,10 +336,10 @@ def triage(session_factory, incident_id: uuid.UUID, actor: str, engine: str = "a
             run = TriageRun(
                 incident_id=incident.id, incident_revision=inputs["revision"], engine=inputs["engine"],
                 model=a.meta.get("model") or get_settings().llm_model, model_digest=a.meta.get("system_fingerprint"),
-                prompt_version=llm.PROMPT_VERSION, input_hash=inputs["input_hash"], raw_output=a.raw,
+                prompt_version=llm.prompt_version(), input_hash=inputs["input_hash"], raw_output=a.raw,
                 proposal=a.proposal.model_dump(mode="json") if a.proposal else None, valid=not errors, errors=errors,
                 duration_ms=a.duration_ms,
-                context={"system": llm.SYSTEM, "user": inputs["context"], "schema": schema} if n == 1
+                context={"system": llm.system_prompt(), "user": inputs["context"], "schema": schema} if n == 1
                 else {"repair_of": str(previous.id), "repair_prompt": "validation errors fed back to the model"},
                 params={**llm.params(), "attempt": n, "response": a.meta})
             db.add(run)

@@ -12,6 +12,7 @@ set -a; . ./.env; set +a
 WORKFLOWS=(
   "00_error_handler.json:RFw00ErrorHndl1x"
   "01_intake.json:RFw01Intake00001"
+  "02_operator_form.json:RFw02OperForm001"
   "03_dispatch_ticket.json:RFw03DispTicket1"
   "04_dispatch_notification.json:RFw04DispNotify1"
   "05_recovery.json:RFw05Recovery001"
@@ -47,6 +48,8 @@ creds = [
      "data": {"name": "X-RepairFlow-Internal", "value": os.environ["RF_INTERNAL_KEY"]}},
     {"id": "rfCredTicketKey1", "name": "RF Ticket API", "type": "httpHeaderAuth",
      "data": {"name": "X-Api-Key", "value": os.environ["TICKET_API_KEY"]}},
+    {"id": "rfCredOperForm01", "name": "RF Operator Form", "type": "httpBasicAuth",
+     "data": {"user": os.environ["RF_FORM_USER"], "password": os.environ["RF_FORM_PASSWORD"]}},
     {"id": "rfCredMailpitSm1", "name": "RF Mailpit SMTP", "type": "smtp",
      "data": {"user": "", "password": "", "host": "mailpit", "port": 1025, "secure": False, "disableStartTls": True}},
 ]

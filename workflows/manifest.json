@@ -99,6 +99,34 @@
       ]
     },
     {
+      "file": "02_operator_form.json",
+      "id": "RFw02OperForm001",
+      "name": "RF 02 Operator report form",
+      "published_after_provisioning": true,
+      "nodes": [
+        {
+          "name": "Operator form",
+          "type": "n8n-nodes-base.formTrigger",
+          "typeVersion": 2.2
+        },
+        {
+          "name": "Build report",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "name": "Send to intake",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2
+        }
+      ],
+      "credentials_required": [
+        "httpBasicAuth:RF Operator Form",
+        "httpHeaderAuth:RF Intake Webhook Key"
+      ],
+      "webhooks": []
+    },
+    {
       "file": "03_dispatch_ticket.json",
       "id": "RFw03DispTicket1",
       "name": "RF 03 Dispatch ticket",

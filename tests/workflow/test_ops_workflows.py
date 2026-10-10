@@ -112,3 +112,23 @@ def test_correlation_id_reaches_the_ticket_service():
     logs = subprocess.run(["docker", "compose", "logs", "ticket-service", "--since", "3m"], capture_output=True,
                           text=True, cwd=ROOT).stdout
     assert any(cid in line and '"ticket_request"' in line for line in logs.splitlines())
+
+
+def test_operator_form_feeds_the_single_intake_path():
+    form = "http://127.0.0.1:15678/form/rf-report"
+    auth = (ENV["RF_FORM_USER"], ENV["RF_FORM_PASSWORD"])
+    assert httpx.get(form, timeout=10).status_code == 401
+    assert httpx.get(form, auth=(auth[0], "wrong"), timeout=10).status_code == 401
+    text = f"Le bras vibre fortement en levage, test formulaire {random.randint(10**6, 10**7)}."
+    r = httpx.post(form, auth=auth, timeout=60, files={"_": ("", b"")},
+                   data={"field-0": "robot-08 (Sorter Hotel, Warehouse A)", "field-1": "fr", "field-2": text, "field-3": "operator-demo-1"})
+    assert r.status_code == 200
+
+    def created():
+        for i in httpx.get(f"{API}/v1/incidents?limit=20", headers=REVIEWER, timeout=10).json():
+            d = incident(i["id"])
+            if d["revision_data"]["description"] == text and d["status"] != "enriching":
+                return d
+    d = wait_for(created, 60, 2, "incident from the form")
+    assert d["equipment_id"] == "robot-08" and d["evidence"][0]["source_id"].startswith("n8n-intake-webhook:form-")
+    assert d["status"] == "needs_review" and d["review"]["proposal"]  # went through W1 enrichment + triage

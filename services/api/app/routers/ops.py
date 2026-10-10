@@ -262,7 +262,7 @@ def diagnostics(p: Principal = Depends(principal), db: Session = Depends(get_db)
         "generated_at": db.execute(text("SELECT now()")).scalar_one().isoformat(),
         "versions": {
             "schema": db.execute(text("SELECT version_num FROM alembic_version")).scalar_one(),
-            "policy": POLICY_VERSION, "rules": rules.RULES_VERSION, "prompt": llm.PROMPT_VERSION,
+            "policy": POLICY_VERSION, "rules": rules.RULES_VERSION, "prompt": llm.prompt_version(),
             "llm": {"configured": llm.enabled(), "model": s.llm_model or None,
                     "provider_host": s.llm_base_url.split("/")[2] if "://" in s.llm_base_url else None},
         },

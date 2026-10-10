@@ -1,0 +1,182 @@
+{
+  "id": "RFw02OperForm001",
+  "name": "RF 02 Operator report form",
+  "nodes": [
+    {
+      "id": "f0e287db-0a33-57d1-a087-fbc8e45cca9c",
+      "name": "Operator form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "3ea2cda3-8423-54b0-b61e-1ce09c3d38f4",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "rfCredOperForm01",
+          "name": "RF Operator Form"
+        }
+      },
+      "parameters": {
+        "authentication": "basicAuth",
+        "formTitle": "Report an equipment problem",
+        "formDescription": "Fictional demo fleet. Describe what you observed; a reviewer checks it before any ticket is created.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Equipment",
+              "fieldName": "equipment_id",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "robot-01 (Picker Alpha, Warehouse A)"
+                  },
+                  {
+                    "option": "robot-02 (Picker Bravo, Warehouse A)"
+                  },
+                  {
+                    "option": "robot-03 (Picker Charlie, Warehouse A)"
+                  },
+                  {
+                    "option": "robot-04 (Tugger Delta, Warehouse B)"
+                  },
+                  {
+                    "option": "robot-05 (Tugger Echo, Warehouse B)"
+                  },
+                  {
+                    "option": "robot-06 (Sorter Foxtrot, Warehouse B)"
+                  },
+                  {
+                    "option": "robot-07 (Picker Golf, Warehouse A)"
+                  },
+                  {
+                    "option": "robot-08 (Sorter Hotel, Warehouse A)"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Language",
+              "fieldName": "language",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "fr"
+                  },
+                  {
+                    "option": "en"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "What happened?",
+              "fieldName": "description",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Your operator reference",
+              "fieldName": "operator_reference",
+              "fieldType": "text",
+              "placeholder": "operator-demo-1"
+            }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "text",
+              "formSubmittedText": "Report received. A reviewer will check it before any ticket is created."
+            }
+          },
+          "appendAttribution": false,
+          "path": "rf-report"
+        }
+      }
+    },
+    {
+      "id": "b6cf64c9-7786-5459-928a-3c79ef57fcab",
+      "name": "Build report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// The form only collects the report; W1 owns intake (validation, idempotency, enrichment, triage).\n// One submission = one event: a double click creates two events (documented limit of a plain form).\nconst f = $input.first().json;\nconst pick = (...names) => names.map((n) => f[n]).find((v) => v !== undefined && v !== '');\nreturn [{ json: {\n  event_id: `form-${$execution.id}`,\n  equipment_id: String(pick('equipment_id', 'Equipment') || '').split(' ')[0],\n  reported_at: new Date().toISOString().slice(0, 19) + 'Z',\n  language: pick('language', 'Language') || 'fr',\n  description: pick('description', 'What happened?'),\n  operator_reference: pick('operator_reference', 'Your operator reference') || undefined,\n} }];"
+      }
+    },
+    {
+      "id": "0ed17d64-c836-5251-92f6-2c30eb92a358",
+      "name": "Send to intake",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/rf-intake",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rfCredIntakeKey1",
+          "name": "RF Intake Webhook Key"
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Operator form": {
+      "main": [
+        [
+          {
+            "node": "Build report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build report": {
+      "main": [
+        [
+          {
+            "node": "Send to intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "RFw00ErrorHndl1x"
+  },
+  "pinData": {},
+  "tags": []
+}
