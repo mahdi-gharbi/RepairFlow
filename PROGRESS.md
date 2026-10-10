@@ -1,6 +1,6 @@
 # PROGRESS — RepairFlow
 
-Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-10-10, ~14:30 UTC.
+Journal de travail (français). Cible : **V1.1**. Dernière mise à jour : 2026-10-10, ~19:40 UTC.
 
 ## État par milestone
 
@@ -122,6 +122,33 @@ Portable i7-10510U, toute la pile dans Docker, 1 processus uvicorn, worker tick 
   Test unique : clarify P 0,545 → 0,867 (`llm`) et 0,556 → 0,929 (`retrieval_llm`), rappel 1,0 ; macro-F1 catégorie
   `retrieval_llm` 1,0 → 0,912 (2 cas). La règle n'a corrigé qu'1 run sur 49 sur le dev. Variabilité observée : même prompt v1,
   rappel de contradiction `retrieval_llm` 1,0 → 0,6 entre deux passages — les écarts d'un ou deux cas sont du bruit.
+
+### 4.8 Jour 2, fin (2026-10-10) — vidéo, filet de sécurité, incidents d'environnement
+
+* **Vidéo de démo** enregistrée automatiquement (`apps/dashboard/e2e-demo/demo-tour.spec.ts`, `npx playwright test -c playwright.demo.config.ts`),
+  sous-titrée, 1 min 31, sur une pile jetable propre (`COMPOSE_PROJECT_NAME=rfdemo`) : formulaire n8n → rejeu idempotent →
+  contradiction et citations → révision périmée → panne 503×2 et reprises → email Mailpit → Replay Lab. Fichier local
+  `artifacts/demo/repairflow-demo.webm` (non versionné, 5,7 Mo).
+* **Découverte par la vidéo** : sur le cas phare (« batterie pourtant pleine » vs 12 %), le vrai modèle a une fois omis la
+  contradiction et proposé `prepare_ticket`. → **filet de sécurité déterministe** : les contradictions détectées par les
+  règles sur le même manifest et absentes de la proposition LLM y sont ajoutées (marquées `[rules]`), puis `clarify` est
+  imposé ; sortie brute conservée, ajustements tracés. Appliqué aussi au Replay Lab. Tests : 33 passed (contrat LLM + replay).
+  Non encore mesuré sur la campagne d'évaluation.
+* **OpenRouter** : réponse HTTP 200 avec `finish_reason: "error"` et contenu vide observée → désormais classée défaillance
+  du fournisseur (pas de réparation) ; `finish_reason: "length"` → erreur de format réparable. **Les 2 tests correspondants
+  sont écrits mais pas encore exécutés** (Docker arrêté, voir ci-dessous).
+* **Incidents d'environnement** : le proxy DNS de Docker Desktop a cessé de résoudre les noms externes (contourné
+  temporairement par un `compose.override.yaml` local, supprimé depuis), puis Docker a planté en boucle. Cause : **disque C:
+  plein (0,14 Go libres)** ; le disque virtuel Docker fait 84 Go (tous projets), et mes rebuilds répétés y ont contribué.
+  Libéré de mon côté : Chromium Playwright 1140 (344 Mo) et `.pytest_tmp`. Décision du porteur : il libère lui-même de la place.
+
+**Reprise quand Docker tient debout :**
+```bash
+docker compose up -d
+cd apps/dashboard && npx playwright install chromium && cd ../..     # navigateur supprimé pour libérer de la place
+.venv/Scripts/python -m pytest -q tests                              # dont les 2 tests finish_reason jamais exécutés
+cd apps/dashboard && npx playwright test
+```
 
 ### 4.7 Reproductibilité
 
